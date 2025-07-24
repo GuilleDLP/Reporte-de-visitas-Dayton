@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes de Servicio - Dayton</title>
+    <!-- jsPDF desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+window.onload = () => {
+    document.getElementById('colegio').focus();
+};
+
+function nuevoReporte() {
+    document.getElementById("visitaForm").reset();
+    limpiarVistaPrevia();
+}
+
+</script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .form-container {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .reporte-preview {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+        
+        .reporte-preview h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .reporte-content {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .saved-reports {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e8f4f8;
+            border-radius: 8px;
+        }
+        
+        .saved-reports h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .reports-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .reports-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .search-filters {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .search-filters h4 {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .search-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .search-input, .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .search-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.1);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #e1e8ed;
+            font-style: italic;
+        }
+        
+        .report-item {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .report-item:hover {
+            background: #f0f8ff;
+            transform: translateX(5px);
+        }
+        
+        .report-item strong {
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .report-item small {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .report-actions {
+            margin-top: 10px;
+        }
+        
+        /* Mensajes de confirmación */
+        .message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 16px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            button {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+            
+            .reports-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .reports-actions {
+                justify-content: center;
+            }
+            
+            .search-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    
+.acciones {
+  margin-top: 10px;
+}
+.acciones button {
+  margin-right: 10px;
+}
+
+.footer-leyenda {
+  margin-top: 50px;
+  padding: 15px;
+  text-align: center;
+  font-size: 12px;
+  color: #555;
+  background-color: #f1f1f1;
+  font-style: italic;
+  border-top: 1px solid #ddd;
+}
+
+</style>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="icono-192.png" />
+  <meta name="theme-color" content="#2c3e50" />
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Reportes de Servicio</h1>
+            <p>University of Dayton Publishing</p>
+        </div>
+        
+        <div class="form-container">
+            <div id="messages"></div>
+            
+            <form id="visitaForm">
+                <div class="form-group">
+                    <label for="colegio">Colegio</label>
+                    <input type="text" id="colegio" name="colegio" required list="colegiosDatalist" autocomplete="off">
+                    <datalist id="colegiosDatalist"></datalist>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gerencia">Gerencia</label>
+                        <select id="gerencia" name="gerencia" required onchange="actualizarZonas()">
+                            <option value="">Seleccionar gerencia</option>
+                            <option value="Bajío">Bajío</option>
+                            <option value="Centro-Norte">Centro-Norte</option>
+                            <option value="Centro-Sur">Centro-Sur</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Occidente">Occidente</option>
+                            <option value="Oriente">Oriente</option>
+                            <option value="Pacífico">Pacífico</option>
+                            <option value="Sur">Sur</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zona">Zona Comercial</label>
+                        <select id="zona" name="zona" required>
+                            <option value="">Primero selecciona una gerencia</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fecha">Fecha de Visita</label>
+                        <input type="date" id="fecha" name="fecha" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="objetivo">Objetivo de la Visita</label>
+                        <select id="objetivo" name="objetivo" required onchange="mostrarCampoOtroObjetivo()">
+                            <option value="">Seleccionar objetivo</option>
+                            <option value="Presentación inicial">Presentación inicial</option>
+                            <option value="Seguimiento comercial">Seguimiento comercial</option>
+                            <option value="Demostración de producto">Demostración de producto</option>
+                            <option value="Capacitación">Capacitación</option>
+                            <option value="Resolución de dudas">Resolución de dudas</option>
+                            <option value="Renovación de contrato">Renovación de contrato</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        <div id="otroObjetivoContainer" style="display: none; margin-top: 10px;">
+                            <label for="otroObjetivo">Especificar otro objetivo:</label>
+                            <input type="text" id="otroObjetivo" name="otroObjetivo" placeholder="Describe el objetivo específico...">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Datos de Contacto</label>
+                    <div class="form-row">
+                        <div>
+                            <label for="nombreContacto">Nombre</label>
+                            <input type="text" id="nombreContacto" name="nombreContacto" required>
+                        </div>
+                        <div>
+                            <label for="cargoContacto">Cargo</label>
+                            <input type="text" id="cargoContacto" name="cargoContacto" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div>
+                            <label for="telefonoContacto">Teléfono</label>
+                            <input type="tel" id="telefonoContacto" name="telefonoContacto" required 
+                                   placeholder="555-123-4567 o 5551234567"
+                                   onblur="formatearTelefono(this)">
+                        </div>
+                        <div>
+                            <label for="correoContacto">Correo electrónico</label>
+                            <input type="email" id="correoContacto" name="correoContacto" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productos">Productos Presentados/Servicios Otorgados</label>
+                    <textarea id="productos" name="productos" placeholder="Describe los libros, niveles, o servicios que presentaste..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notas">Notas Relevantes</label>
+                    <textarea id="notas" name="notas" placeholder="Observaciones importantes, reacciones del cliente, comentarios..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="compromisos">Compromisos y Siguientes Pasos</label>
+                    <textarea id="compromisos" name="compromisos" placeholder="¿Qué se acordó? ¿Cuáles son los próximos pasos?"></textarea>
+                </div>
+                
+                <div class="buttons">
+                    <button type="button" class="btn-primary" onclick="generarReporte()">
+                        📄 Generar Reporte
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="guardarReporte()">
+                        💾 Guardar Borrador
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="nuevoReporte()">
+                        🆕 Nuevo reporte
+                    </button>
+                </div>
+            </form>
+            
+            <div id="reportePreview" class="reporte-preview">
+                <h3>Vista Previa del Reporte</h3>
+                <div id="reporteContent" class="reporte-content"></div>
+                <div style="margin-top: 20px;">
+                    <button class="btn-small btn-primary" onclick="copiarReporte()">📋 Copiar</button>
+                    <button class="btn-small btn-secondary" onclick="enviarEmail()">📧 Enviar por Email</button>
+                    <button class="btn-small btn-success" onclick="descargarPDF()">📄 Descargar PDF</button>
+                </div>
+            </div>
+            
+            <div id="savedReports" class="saved-reports" style="display: none;">
+                <div class="reports-header">
+                    <h3>📁 Borradores Guardados</h3>
+                    <div class="reports-actions">
+                        <button class="btn-small btn-info" onclick="exportarTodosBorradores()">
+                            📦 Exportar Todos
+                        </button>
+                        <button class="btn-small btn-info" onclick="generarEstadisticas()">
+                            📊 Estadísticas
+                        </button>
+                        <button class="btn-small btn-danger" onclick="eliminarTodosBorradores()">
+                            🗑️ Eliminar Todos
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="search-filters">
+                    <h4>🔍 Buscar y Filtrar Reportes</h4>
+                    <div class="search-row">
+                        <div>
+                            <label for="searchInput" style="font-size: 14px; margin-bottom: 5px;">Buscar por colegio, contacto o zona:</label>
+                            <input type="text" id="searchInput" class="search-input" 
+                                   placeholder="Escribe para buscar..." 
+                                   oninput="filtrarBorradores()">
+                        </div>
+                        <div>
+                            <label for="gerenciaFilter" style="font-size: 14px; margin-bottom: 5px;">Filtrar por gerencia:</label>
+                            <select id="gerenciaFilter" class="filter-select" onchange="filtrarBorradores()">
+                                <option value="">Todas las gerencias</option>
+                                <option value="Bajío">Bajío</option>
+                                <option value="Centro-Norte">Centro-Norte</option>
+                                <option value="Centro-Sur">Centro-Sur</option>
+                                <option value="Norte">Norte</option>
+                                <option value="Occidente">Occidente</option>
+                                <option value="Oriente">Oriente</option>
+                                <option value="Pacífico">Pacífico</option>
+                                <option value="Sur">Sur</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="reportsList"></div>
+                <div id="noResults" class="no-results" style="display: none;">
+                    🔍 No se encontraron reportes que coincidan con tu búsqueda
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Zonas por gerencia - Estructura organizacional completa
+        const zonasPorGerencia = {
+            'Bajío': [
+                'Celaya', 'Irapuato', 'León I', 'León II', 'Morelia I', 'Morelia II', 
+                'Querétaro I', 'Querétaro II', 'San Luis Potosí I', 'San Luis Potosí II'
+            ],
+            'Centro-Norte': [
+                'Atizapán', 'Cuautitlán', 'Ecatepec', 'Gustavo A. Madero', 'Naucalpan', 
+                'Neza', 'Tlalnepantla', 'Toluca', 'Tultitlán', 'Xochimilco'
+            ],
+            'Centro-Sur': [
+                'Acapulco', 'Álvaro Obregón', 'Azcapotzalco', 'Coyoacán', 'Cuautla', 
+                'Cuernavaca', 'Iztapalapa I', 'Iztapalapa II', 'Miguel Hidalgo', 'Tlalpan'
+            ],
+            'Norte': [
+                'Chihuahua', 'Cd. Juárez', 'Durango', 'Monterrey I', 'Monterrey II', 
+                'Monterrey III', 'Monterrey IV', 'Reynosa', 'Saltillo', 'Tampico', 'Torreón'
+            ],
+            'Occidente': [
+                'Aguascalientes', 'Colima', 'Guadalajara I', 'Guadalajara II', 'Tepic', 
+                'Tlajomulco', 'Tlaquepaque', 'Zapopan I', 'Zapopan II'
+            ],
+            'Oriente': [
+                'Chalco', 'Oaxaca I', 'Oaxaca II', 'Pachuca', 'Puebla I', 'Puebla II', 
+                'Puebla III', 'Texcoco', 'Tulancingo'
+            ],
+            'Pacífico': [
+                'Cd. Obregón', 'Culiacán', 'Hermosillo I', 'Hermosillo II', 'Los Cabos', 
+                'Mazatlán', 'Mexicali', 'Tijuana I', 'Tijuana II'
+            ],
+            'Sur': [
+                'Cancún', 'Córdoba', 'Mérida I', 'Mérida II', 'Playa del Carmen', 'Poza Rica', 
+                'Tapachula', 'Tuxtla', 'Veracruz I', 'Veracruz II', 'Villahermosa I', 'Villahermosa II'
+            ]
+        };
+
+        // Variable global para almacenar datos del reporte actual
+        let reporteActual = null;
+        
+        // Variables globales para filtrado
+        let borradoresOriginales = [];
+        let borradoresFiltrados = [];
+
+        function actualizarZonas() {
+            const gerenciaSelect = document.getElementById('gerencia');
+            const zonaSelect = document.getElementById('zona');
+            const gerenciaSeleccionada = gerenciaSelect.value;
+            
+            // Limpiar opciones anteriores
+            zonaSelect.innerHTML = '';
+            
+            if (gerenciaSeleccionada) {
+                // Agregar opción por defecto
+                zonaSelect.innerHTML = '<option value="">Seleccionar zona</option>';
+                
+                // Agregar zonas de la gerencia seleccionada
+                const zonas = zonasPorGerencia[gerenciaSeleccionada] || [];
+                zonas.forEach(zona => {
+                    const option = document.createElement('option');
+                    option.value = zona;
+                    option.textContent = zona;
+                    zonaSelect.appendChild(option);
+                });
+            } else {
+                zonaSelect.innerHTML = '<option value="">Primero selecciona una gerencia</option>';
+            }
+        }
+        
+        // Establecer fecha actual por defecto
+        document.getElementById('fecha').valueAsDate = new Date();
+        
+        // Cargar borradores guardados al iniciar
+        window.onload = function() {
+            cargarBorradores();
+            cargarAutocompletadoColegios();
+        };
+
+        // Funciones para autocompletado de colegios
+        function cargarAutocompletadoColegios() {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            const colegiosUnicos = [...new Set(borradores.map(b => b.colegio))].filter(c => c && c.trim());
+            
+            const datalist = document.getElementById('colegiosDatalist');
+            datalist.innerHTML = '';
+            
+            colegiosUnicos.forEach(colegio => {
+                const option = document.createElement('option');
+                option.value = colegio;
+                datalist.appendChild(option);
+            });
+        }
+
+        // Función para mostrar/ocultar campo "Otro objetivo"
+        function mostrarCampoOtroObjetivo() {
+            const objetivoSelect = document.getElementById('objetivo');
+            const otroContainer = document.getElementById('otroObjetivoContainer');
+            const otroInput = document.getElementById('otroObjetivo');
+            
+            if (objetivoSelect.value === 'Otro') {
+                otroContainer.style.display = 'block';
+                otroInput.required = true;
+            } else {
+                otroContainer.style.display = 'none';
+                otroInput.required = false;
+                otroInput.value = '';
+            }
+        }
+
+        // Función para formatear teléfono
+        function formatearTelefono(input) {
+            let valor = input.value.replace(/\D/g, ''); // Quitar todo excepto números
+            
+            if (valor.length === 10) {
+                // Formato: 555-123-4567
+                input.value = valor.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+            } else if (valor.length === 0) {
+                input.value = '';
+            }
+            // Si no tiene 10 dígitos, mantener el valor original para que el usuario pueda corregir
+        }
+
+        // Validación mejorada de teléfono
+        function validarTelefono(telefono) {
+            const soloNumeros = telefono.replace(/\D/g, '');
+            return soloNumeros.length === 10;
+        }
+
+        function mostrarMensaje(texto, tipo = 'success') {
+            const messagesDiv = document.getElementById('messages');
+            const mensaje = document.createElement('div');
+            mensaje.className = `message ${tipo}`;
+            mensaje.textContent = texto;
+            mensaje.style.display = 'block';
+            
+            messagesDiv.innerHTML = '';
+            messagesDiv.appendChild(mensaje);
+            
+            // Auto-hide después de 3 segundos
+            setTimeout(() => {
+                mensaje.style.display = 'none';
+            }, 3000);
+        }
+
+        function limpiarVistaPrevia() {
+            document.getElementById('reportePreview').style.display = 'none';
+            document.getElementById('reporteContent').innerHTML = '';
+            reporteActual = null;
+        }
+
+        function generarReporte() {
+            const form = document.getElementById('visitaForm');
+            const formData = new FormData(form);
+            
+            // Validar campos requeridos
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                mostrarMensaje('⚠️ Por favor completa todos los campos requeridos', 'warning');
+                return;
+            }
+
+            // Validación específica de teléfono
+            const telefono = formData.get('telefonoContacto');
+            if (!validarTelefono(telefono)) {
+                mostrarMensaje('⚠️ El teléfono debe tener exactamente 10 dígitos', 'warning');
+                document.getElementById('telefonoContacto').focus();
+                return;
+            }
+            
+            const fecha = formData.get('fecha');
+            const fechaFormateada = new Date(fecha).toLocaleDateString('es-MX', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Determinar el objetivo final
+            let objetivoFinal = formData.get('objetivo');
+            if (objetivoFinal === 'Otro') {
+                objetivoFinal = formData.get('otroObjetivo') || 'Otro';
+            }
+            
+            // Guardar datos del reporte actual para PDF
+            reporteActual = {
+                colegio: formData.get('colegio'),
+                gerencia: formData.get('gerencia'),
+                zona: formData.get('zona'),
+                fecha: fecha,
+                fechaFormateada: fechaFormateada,
+                objetivo: objetivoFinal,
+                nombreContacto: formData.get('nombreContacto'),
+                cargoContacto: formData.get('cargoContacto'),
+                telefonoContacto: formData.get('telefonoContacto'),
+                correoContacto: formData.get('correoContacto'),
+                productos: formData.get('productos'),
+                notas: formData.get('notas'),
+                compromisos: formData.get('compromisos')
+            };
+            
+            const reporte = `
+<h2 style="margin-bottom: 10px;">📋 Reporte de Visita</h2>
+<p><strong>Editorial:</strong> University of Dayton Publishing</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Información General</h3>
+<p><strong>Institución:</strong> ${reporteActual.colegio}</p>
+<p><strong>Gerencia:</strong> ${reporteActual.gerencia}</p>
+<p><strong>Zona Comercial:</strong> ${reporteActual.zona}</p>
+<p><strong>Fecha de Visita:</strong> ${reporteActual.fechaFormateada}</p>
+<p><strong>Objetivo:</strong> ${reporteActual.objetivo}</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Contacto</h3>
+<p><strong>Nombre:</strong> ${reporteActual.nombreContacto}</p>
+<p><strong>Cargo:</strong> ${reporteActual.cargoContacto}</p>
+<p><strong>Teléfono:</strong> ${reporteActual.telefonoContacto}</p>
+<p><strong>Correo:</strong> ${reporteActual.correoContacto}</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Productos/Servicios Presentados</h3>
+<p>${reporteActual.productos.replace(/\n/g, '<br>')}</p>
+
+<h3>Notas Relevantes</h3>
+<p>${reporteActual.notas.replace(/\n/g, '<br>')}</p>
+
+<h3>Compromisos y Siguientes Pasos</h3>
+<p>${reporteActual.compromisos.replace(/\n/g, '<br>')}</p>
+
+<hr style="margin: 20px 0;">
+<p><em>Reporte generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}</em></p>
+            `;
+            
+            document.getElementById('reporteContent').innerHTML = reporte;
+            document.getElementById('reportePreview').style.display = 'block';
+            document.getElementById('reportePreview').scrollIntoView({ behavior: 'smooth' });
+            
+            mostrarMensaje('✅ Reporte generado exitosamente');
+        }
+
+        function descargarPDF() {
+            if (!reporteActual) {
+                mostrarMensaje('⚠️ Primero genera un reporte', 'warning');
+                return;
+            }
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Configuración de márgenes y posición inicial
+                const margenIzq = 20;
+                const margenDer = 20;
+                const anchoUtil = 210 - margenIzq - margenDer; // A4 width minus margins
+                let yPos = 20;
+                
+                // Función helper para agregar texto con wrap
+                function agregarTexto(texto, x, y, opciones = {}) {
+                    const lineas = doc.splitTextToSize(texto, anchoUtil);
+                    doc.text(lineas, x, y, opciones);
+                    return y + (lineas.length * 7); // Retorna nueva posición Y
+                }
+                
+                // Función para verificar si necesitamos nueva página
+                function verificarEspacio(alturaRequerida) {
+                    if (yPos + alturaRequerida > 280) { // 280 es cerca del final de la página A4
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                }
+                
+                // Título principal
+                doc.setFontSize(18);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('REPORTE DE VISITA', margenIzq, yPos);
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto('University of Dayton Publishing', margenIzq, yPos + 5);
+                yPos += 15;
+                
+                // Línea separadora
+                doc.line(margenIzq, yPos, 210 - margenDer, yPos);
+                yPos += 15;
+                
+                // Información General
+                verificarEspacio(50);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('INFORMACIÓN GENERAL', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto(`Institución: ${reporteActual.colegio}`, margenIzq, yPos);
+                yPos = agregarTexto(`Gerencia: ${reporteActual.gerencia}`, margenIzq, yPos);
+                yPos = agregarTexto(`Zona Comercial: ${reporteActual.zona}`, margenIzq, yPos);
+                yPos = agregarTexto(`Fecha de Visita: ${reporteActual.fechaFormateada}`, margenIzq, yPos);
+                yPos = agregarTexto(`Objetivo: ${reporteActual.objetivo}`, margenIzq, yPos);
+                yPos += 10;
+                
+                // Contacto
+                verificarEspacio(40);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('CONTACTO', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto(`Nombre: ${reporteActual.nombreContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Cargo: ${reporteActual.cargoContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Teléfono: ${reporteActual.telefonoContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Correo: ${reporteActual.correoContacto}`, margenIzq, yPos);
+                yPos += 10;
+                
+                // Productos/Servicios
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('PRODUCTOS/SERVICIOS PRESENTADOS', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.productos.trim()) {
+                    yPos = agregarTexto(reporteActual.productos, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 10;
+                
+                // Notas Relevantes
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('NOTAS RELEVANTES', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.notas.trim()) {
+                    yPos = agregarTexto(reporteActual.notas, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 10;
+                
+                // Compromisos
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('COMPROMISOS Y SIGUIENTES PASOS', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.compromisos.trim()) {
+                    yPos = agregarTexto(reporteActual.compromisos, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 15;
+                
+                // Pie de página
+                verificarEspacio(20);
+                doc.line(margenIzq, yPos, 210 - margenDer, yPos);
+                yPos += 10;
+                
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'italic');
+                const fechaGeneracion = `Reporte generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}`;
+                yPos = agregarTexto(fechaGeneracion, margenIzq, yPos);
+                
+                // Crear nombre del archivo
+                const nombreArchivo = `reporte_${reporteActual.colegio.replace(/\s+/g, "_")}_${reporteActual.fecha}.pdf`;
+                
+                // Descargar PDF
+                doc.save(nombreArchivo);
+                mostrarMensaje('📄 PDF descargado exitosamente');
+                
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                mostrarMensaje('❌ Error al generar el PDF. Intenta nuevamente.', 'warning');
+            }
+        }
+
+        function copiarReporte() {
+            const contenido = document.getElementById('reporteContent').innerText;
+            navigator.clipboard.writeText(contenido).then(() => {
+                mostrarMensaje('✅ Reporte copiado al portapapeles');
+            }).catch(() => {
+                mostrarMensaje('❌ Error al copiar al portapapeles', 'warning');
+            });
+        }
+
+        function enviarEmail() {
+            const contenido = document.getElementById('reporteContent').innerText;
+            const asunto = `Reporte de Visita - ${document.getElementById('colegio').value}`;
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(contenido)}`;
+            window.location.href = mailtoLink;
+        }
+
+        function guardarReporte() {
+            const form = document.getElementById('visitaForm');
+            const formData = new FormData(form);
+
+            // Validar que campos clave no estén vacíos ni solo con espacios
+            const camposAValidar = [
+                'colegio', 'nombreContacto', 'cargoContacto', 
+                'productos', 'notas', 'compromisos'
+            ];
+
+            for (let campo of camposAValidar) {
+                if (estaVacioOCadenaBlanca(formData.get(campo))) {
+                    mostrarMensaje(`⚠️ El campo "${campo}" no puede estar vacío o solo con espacios`, 'warning');
+                    return;
+                }
+            }
+
+            // Validación específica de teléfono
+            const telefono = formData.get('telefonoContacto');
+            if (!validarTelefono(telefono)) {
+                mostrarMensaje('⚠️ El teléfono debe tener exactamente 10 dígitos', 'warning');
+                document.getElementById('telefonoContacto').focus();
+                return;
+            }
+        
+            if (!formData.get('colegio')) {
+                mostrarMensaje('⚠️ Ingresa al menos el nombre del colegio para guardar', 'warning');
+                return;
+            }
+
+            const colegio = formData.get('colegio').trim();
+            const fecha = formData.get('fecha');
+
+            const borradoresExistentes = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            const duplicado = borradoresExistentes.some(b => 
+                b.colegio.trim().toLowerCase() === colegio.toLowerCase() && 
+                b.fecha === fecha
+            );
+
+            if (duplicado) {
+                mostrarMensaje('⚠️ Ya existe un borrador con esta institución y fecha', 'warning');
+                return;
+            }
+
+            // Determinar el objetivo final
+            let objetivoFinal = formData.get('objetivo');
+            if (objetivoFinal === 'Otro') {
+                objetivoFinal = formData.get('otroObjetivo') || 'Otro';
+            }
+            
+            const reporte = {
+                id: Date.now(),
+                colegio: formData.get('colegio'),
+                gerencia: formData.get('gerencia'),
+                zona: formData.get('zona'),
+                fecha: formData.get('fecha'),
+                objetivo: objetivoFinal,
+                otroObjetivo: formData.get('otroObjetivo'), // Guardar por separado para poder cargar
+                nombreContacto: formData.get('nombreContacto'),
+                cargoContacto: formData.get('cargoContacto'),
+                telefonoContacto: formData.get('telefonoContacto'),
+                correoContacto: formData.get('correoContacto'),
+                productos: formData.get('productos'),
+                notas: formData.get('notas'),
+                compromisos: formData.get('compromisos'),
+                fechaGuardado: new Date().toISOString()
+            };
+            
+            let borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            borradores.push(reporte);
+            localStorage.setItem('reportesBorradores', JSON.stringify(borradores));
+
+            // Crear contenido de respaldo .txt
+            const fechaFormateada = new Date(reporte.fecha).toLocaleDateString('es-MX', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const contenidoTxt = 
+`REPORTE DE VISITA
+University of Dayton Publishing
+
+INFORMACIÓN GENERAL
+Institución: ${reporte.colegio}
+Gerencia: ${reporte.gerencia}
+Zona Comercial: ${reporte.zona}
+Fecha de Visita: ${fechaFormateada}
+Objetivo: ${reporte.objetivo}
+
+CONTACTO
+Nombre: ${reporte.nombreContacto}
+Cargo: ${reporte.cargoContacto}
+Teléfono: ${reporte.telefonoContacto}
+Correo: ${reporte.correoContacto}
+
+PRODUCTOS/SERVICIOS PRESENTADOS
+${reporte.productos}
+
+NOTAS RELEVANTES
+${reporte.notas}
+
+COMPROMISOS Y SIGUIENTES PASOS
+${reporte.compromisos}
+
+Reporte guardado el ${new Date().toLocaleString('es-MX')}
+`;
+
+            // Crear nombre del archivo
+            const nombreArchivo = `reporte_${reporte.colegio.replace(/\s+/g, "_")}_${reporte.fecha}.txt`;
+            descargarArchivo(nombreArchivo, contenidoTxt);
+
+            mostrarMensaje('💾 Borrador guardado y archivo descargado exitosamente');
+            cargarBorradores();
+            cargarAutocompletadoColegios(); // Actualizar autocompletado
+        }
+        
+        // ====================== NUEVAS FUNCIONES - MEJORAS ======================
+        
+        // 1. EXPORTAR TODOS LOS BORRADORES
+        function exportarTodosBorradores() {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            
+            if (borradores.length === 0) {
+                mostrarMensaje('⚠️ No hay borradores guardados para exportar', 'warning');
+                return;
+            }
+            
+            const fechaExportacion = new Date().toLocaleString('es-MX');
+            const totalReportes = borradores.length;
+            
+            // Calcular estadísticas básicas
+            const gerencias = {};
+            borradores.forEach(b => {
+                gerencias[b.gerencia] = (gerencias[b.gerencia] || 0) + 1;
+            });
+            
+            let contenidoCompleto = `EXPORTACIÓN COMPLETA DE REPORTES DE VISITA
+University of Dayton Publishing
+
+ESTADÍSTICAS BÁSICAS
+===================
+• Total de reportes: ${totalReportes}
+• Fecha de exportación: ${fechaExportacion}
+
+DISTRIBUCIÓN POR GERENCIA:
+`;
+            
+            Object.entries(gerencias).forEach(([gerencia, cantidad]) => {
+                contenidoCompleto += `• ${gerencia}: ${cantidad} reportes\n`;
+            });
+            
+            contenidoCompleto += `
+${'='.repeat(60)}
+
+REPORTES COMPLETOS
+==================
+
+`;
+            
+            // Agregar cada reporte numerado
+            borradores.forEach((reporte, index) => {
+                const fechaFormateada = new Date(reporte.fecha).toLocaleDateString('es-MX', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const fechaGuardado = new Date(reporte.fechaGuardado).toLocaleString('es-MX');
+                
+                contenidoCompleto += `REPORTE #${index + 1}
+${'-'.repeat(20)}
+
+INFORMACIÓN GENERAL
+Institución: ${reporte.colegio}
+Gerencia: ${reporte.gerencia}
+Zona Comercial: ${reporte.zona}
+Fecha de Visita: ${fechaFormateada}
+Objetivo: ${reporte.objetivo}
+
+CONTACTO
+Nombre: ${reporte.nombreContacto}
+Cargo: ${reporte.cargoContacto}
+Teléfono: ${reporte.telefonoContacto}
+Correo: ${reporte.correoContacto}
+
+PRODUCTOS/SERVICIOS PRESENTADOS
+${reporte.productos}
+
+NOTAS RELEVANTES
+${reporte.notas}
+
+COMPROMISOS Y SIGUIENTES PASOS
+${reporte.compromisos}
+
+Guardado: ${fechaGuardado}
+
+${'='.repeat(60)}
+
+`;
+            });
+            
+            const nombreArchivo = `exportacion_completa_reportes_${new Date().toISOString().split('T')[0]}.txt`;
+            descargarArchivo(nombreArchivo, contenidoCompleto);
+            
+            mostrarMensaje(`📦 Exportación completa descargada: ${totalReportes} reportes`);
+        }
+        
+        // 2. BÚSQUEDA Y FILTRADO DE BORRADORES
+        function filtrarBorradores() {
+            const terminoBusqueda = document.getElementById('searchInput').value.toLowerCase().trim();
+            const gerenciaFiltro = document.getElementById('gerenciaFilter').value;
+            
+            // Si no hay filtros activos, mostrar todos
+            if (!terminoBusqueda && !gerenciaFiltro) {
+                mostrarBorradoresFiltrados(borradoresOriginales);
+                return;
+            }
+            
+            let borradoresFiltrados = borradoresOriginales.filter(borrador => {
+                // Filtro por término de búsqueda (colegio, contacto, o zona)
+                let coincideBusqueda = true;
+                if (terminoBusqueda) {
+                    const textoCompleto = `${borrador.colegio} ${borrador.nombreContacto} ${borrador.zona}`.toLowerCase();
+                    coincideBusqueda = textoCompleto.includes(terminoBusqueda);
+                }
+                
+                // Filtro por gerencia
+                let coincideGerencia = true;
+                if (gerenciaFiltro) {
+                    coincideGerencia = borrador.gerencia === gerenciaFiltro;
+                }
+                
+                return coincideBusqueda && coincideGerencia;
+            });
+            
+            mostrarBorradoresFiltrados(borradoresFiltrados);
+        }
+        
+        function mostrarBorradoresFiltrados(borradores) {
+            const reportsList = document.getElementById('reportsList');
+            const noResults = document.getElementById('noResults');
+            
+            if (borradores.length === 0) {
+                reportsList.style.display = 'none';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            reportsList.style.display = 'block';
+            noResults.style.display = 'none';
+            reportsList.innerHTML = '';
+            
+            borradores.reverse().forEach(borrador => {
+                const fecha = new Date(borrador.fecha).toLocaleDateString('es-MX');
+                const fechaGuardado = new Date(borrador.fechaGuardado).toLocaleDateString('es-MX');
+                
+                const item = document.createElement('div');
+                item.className = 'report-item';
+                item.innerHTML = `
+                    <strong>${borrador.colegio}</strong> - ${borrador.gerencia} - ${borrador.zona}<br>
+                    <small>Contacto: ${borrador.nombreContacto} | Visita: ${fecha} | Guardado: ${fechaGuardado}</small>
+                    <div class="report-actions">
+                        <button class="btn-small btn-primary" onclick="cargarBorrador(${borrador.id})">📝 Editar</button>
+                        <button class="btn-small btn-danger" onclick="eliminarBorrador(${borrador.id})">🗑️ Eliminar</button>
+                    </div>
+                `;
+                reportsList.appendChild(item);
+            });
+        }
+        
+        // 3. GENERAR ESTADÍSTICAS
+        function generarEstadisticas() {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            
+            if (borradores.length === 0) {
+                mostrarMensaje('⚠️ No hay reportes guardados para generar estadísticas', 'warning');
+                return;
+            }
+            
+            const fechaGeneracion = new Date().toLocaleString('es-MX');
+            
+            // Estadísticas generales
+            const totalVisitas = borradores.length;
+            
+            // Estadísticas por gerencia
+            const visitasPorGerencia = {};
+            borradores.forEach(b => {
+                visitasPorGerencia[b.gerencia] = (visitasPorGerencia[b.gerencia] || 0) + 1;
+            });
+            
+            // Colegios más visitados
+            const visitasPorColegio = {};
+            borradores.forEach(b => {
+                visitasPorColegio[b.colegio] = (visitasPorColegio[b.colegio] || 0) + 1;
+            });
+            
+            const colegiosMasVisitados = Object.entries(visitasPorColegio)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+            
+            // Período de actividad
+            const fechas = borradores.map(b => new Date(b.fecha)).sort();
+            const fechaInicio = fechas[0].toLocaleDateString('es-MX');
+            const fechaFin = fechas[fechas.length - 1].toLocaleDateString('es-MX');
+            
+            // Objetivos más comunes
+            const objetivos = {};
+            borradores.forEach(b => {
+                objetivos[b.objetivo] = (objetivos[b.objetivo] || 0) + 1;
+            });
+            
+            const objetivosMasComunes = Object.entries(objetivos)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+            
+            // Zonas más activas
+            const zonas = {};
+            borradores.forEach(b => {
+                zonas[b.zona] = (zonas[b.zona] || 0) + 1;
+            });
+            
+            const zonasMasActivas = Object.entries(zonas)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+            
+            // Generar contenido del reporte
+            let contenidoEstadisticas = `ESTADÍSTICAS DE ACTIVIDAD - REPORTES DE VISITA
+University of Dayton Publishing
+
+RESUMEN EJECUTIVO
+=================
+• Total de visitas registradas: ${totalVisitas}
+• Período de actividad: ${fechaInicio} - ${fechaFin}
+• Reporte generado: ${fechaGeneracion}
+
+DISTRIBUCIÓN POR GERENCIA
+=========================
+`;
+            
+            Object.entries(visitasPorGerencia)
+                .sort(([,a], [,b]) => b - a)
+                .forEach(([gerencia, cantidad]) => {
+                    const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                    contenidoEstadisticas += `• ${gerencia}: ${cantidad} visitas (${porcentaje}%)\n`;
+                });
+            
+            contenidoEstadisticas += `
+COLEGIOS MÁS VISITADOS (TOP 10)
+===============================
+`;
+            
+            colegiosMasVisitados.forEach(([colegio, cantidad], index) => {
+                contenidoEstadisticas += `${index + 1}. ${colegio}: ${cantidad} visita${cantidad > 1 ? 's' : ''}\n`;
+            });
+            
+            contenidoEstadisticas += `
+OBJETIVOS MÁS COMUNES (TOP 5)
+=============================
+`;
+            
+            objetivosMasComunes.forEach(([objetivo, cantidad], index) => {
+                const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                contenidoEstadisticas += `${index + 1}. ${objetivo}: ${cantidad} veces (${porcentaje}%)\n`;
+            });
+            
+            contenidoEstadisticas += `
+ZONAS MÁS ACTIVAS (TOP 10)
+==========================
+`;
+            
+            zonasMasActivas.forEach(([zona, cantidad], index) => {
+                const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                contenidoEstadisticas += `${index + 1}. ${zona}: ${cantidad} visita${cantidad > 1 ? 's' : ''} (${porcentaje}%)\n`;
+            });
+            
+            contenidoEstadisticas += `
+ANÁLISIS TEMPORAL
+=================
+• Primera visita registrada: ${fechaInicio}
+• Última visita registrada: ${fechaFin}
+• Promedio de visitas por gerencia: ${(totalVisitas / Object.keys(visitasPorGerencia).length).toFixed(1)}
+
+NOTAS ADICIONALES
+=================
+- Este reporte se basa en ${totalVisitas} reportes de visita guardados localmente
+- Las estadísticas reflejan la actividad acumulada hasta la fecha de generación
+- Para análisis más detallados, consulte los reportes individuales
+
+${'='.repeat(60)}
+Reporte generado automáticamente por el Sistema de Reportes de Visita
+University of Dayton Publishing
+`;
+            
+            const nombreArchivo = `estadisticas_actividad_${new Date().toISOString().split('T')[0]}.txt`;
+            descargarArchivo(nombreArchivo, contenidoEstadisticas);
+            
+            mostrarMensaje(`📊 Estadísticas generadas: ${totalVisitas} reportes analizados`);
+        }
+
+        function cargarBorradores() {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            borradoresOriginales = [...borradores]; // Guardar copia original para filtrado
+            const savedReports = document.getElementById('savedReports');
+            
+            if (borradores.length === 0) {
+                savedReports.style.display = 'none';
+                return;
+            }
+            
+            savedReports.style.display = 'block';
+            mostrarBorradoresFiltrados(borradores);
+        }
+
+        function cargarBorrador(id) {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            const borrador = borradores.find(b => b.id === id);
+            
+            if (borrador) {
+                document.getElementById('colegio').value = borrador.colegio;
+                document.getElementById('gerencia').value = borrador.gerencia;
+                actualizarZonas(); // Actualizar las zonas según la gerencia
+                setTimeout(() => {
+                    document.getElementById('zona').value = borrador.zona;
+                }, 100); // Esperar un poco para que se carguen las zonas
+                document.getElementById('fecha').value = borrador.fecha;
+                
+                // Manejar objetivo y "otro objetivo"
+                if (borrador.otroObjetivo) {
+                    document.getElementById('objetivo').value = 'Otro';
+                    mostrarCampoOtroObjetivo();
+                    document.getElementById('otroObjetivo').value = borrador.otroObjetivo;
+                } else {
+                    document.getElementById('objetivo').value = borrador.objetivo;
+                    mostrarCampoOtroObjetivo(); // Para ocultar el campo si no es "Otro"
+                }
+                
+                document.getElementById('nombreContacto').value = borrador.nombreContacto || '';
+                document.getElementById('cargoContacto').value = borrador.cargoContacto || '';
+                document.getElementById('telefonoContacto').value = borrador.telefonoContacto || '';
+                document.getElementById('correoContacto').value = borrador.correoContacto || '';
+                document.getElementById('productos').value = borrador.productos;
+                document.getElementById('notas').value = borrador.notas;
+                document.getElementById('compromisos').value = borrador.compromisos;
+                
+                // Limpiar filtros de búsqueda
+                document.getElementById('searchInput').value = '';
+                document.getElementById('gerenciaFilter').value = '';
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                mostrarMensaje('📝 Borrador cargado para edición');
+            }
+        }
+
+        function eliminarBorrador(id) {
+            if (confirm('¿Estás seguro de eliminar este borrador?')) {
+                let borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+                borradores = borradores.filter(b => b.id !== id);
+                localStorage.setItem('reportesBorradores', JSON.stringify(borradores));
+                cargarBorradores();
+                cargarAutocompletadoColegios();
+                mostrarMensaje('🗑️ Borrador eliminado exitosamente');
+            }
+        }
+
+        function eliminarTodosBorradores() {
+            const borradores = JSON.parse(localStorage.getItem('reportesBorradores') || '[]');
+            if (borradores.length === 0) {
+                mostrarMensaje('⚠️ No hay borradores para eliminar', 'warning');
+                return;
+            }
+            
+            if (confirm(`¿Estás seguro de eliminar TODOS los borradores guardados? (${borradores.length} borradores)\n\nEsta acción no se puede deshacer.`)) {
+                localStorage.removeItem('reportesBorradores');
+                cargarBorradores();
+                cargarAutocompletadoColegios();
+                // Limpiar filtros
+                document.getElementById('searchInput').value = '';
+                document.getElementById('gerenciaFilter').value = '';
+                mostrarMensaje('🗑️ Todos los borradores han sido eliminados');
+            }
+        }
+        
+        function descargarArchivo(nombre, contenido) {
+            const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+            const enlace = document.createElement('a');
+            enlace.href = URL.createObjectURL(blob);
+            enlace.download = nombre;
+            document.body.appendChild(enlace);
+            enlace.click();
+            document.body.removeChild(enlace);
+        }
+
+        function estaVacioOCadenaBlanca(texto) {
+            return !texto || texto.trim().length === 0;
+        }
+
+    
+window.onload = () => {
+    document.getElementById('colegio').focus();
+};
+
+function nuevoReporte() {
+    document.getElementById("visitaForm").reset();
+    limpiarVistaPrevia();
+}
+
+</script>
+
+<footer class="footer-leyenda">
+  Herramienta de uso interno. Propiedad de <strong>University of Dayton Publishing</strong>. Su uso está restringido exclusivamente al personal autorizado.
+</footer>
+
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(reg => console.log('✅ Service Worker registrado'))
+        .catch(err => console.error('❌ Error al registrar SW:', err));
+    }
+  </script>
+</body>
+
+</html>
