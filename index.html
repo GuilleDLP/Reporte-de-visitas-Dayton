@@ -5,17 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reportes de Servicio - Dayton</title>
     <!-- jsPDF desde CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-window.onload = () => {
-    document.getElementById('colegio').focus();
-};
-
-function nuevoReporte() {
-    document.getElementById("visitaForm").reset();
-    limpiarVistaPrevia();
-}
-
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -353,31 +343,160 @@ function nuevoReporte() {
             }
         }
     
-.acciones {
-  margin-top: 10px;
-}
-.acciones button {
-  margin-right: 10px;
-}
+        .acciones {
+            margin-top: 10px;
+        }
+        .acciones button {
+            margin-right: 10px;
+        }
 
-.footer-leyenda {
-  margin-top: 50px;
-  padding: 15px;
-  text-align: center;
-  font-size: 12px;
-  color: #555;
-  background-color: #f1f1f1;
-  font-style: italic;
-  border-top: 1px solid #ddd;
-}
+        .footer-leyenda {
+            margin-top: 50px;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #555;
+            background-color: #f1f1f1;
+            font-style: italic;
+            border-top: 1px solid #ddd;
+        }
 
-</style>
+        .form-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
 
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/png" href="icono-192.png" />
-  <meta name="theme-color" content="#2c3e50" />
+        .form-section:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Contenedor para opciones horizontales */
+        .opciones-horizontal {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* Contenedor individual para cada opción */
+        .opcion {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .opcion:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Estilos para radio buttons y checkboxes */
+        .form-section input[type="radio"],
+        .form-section input[type="checkbox"] {
+            width: auto;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        /* Labels para radio buttons y checkboxes */
+        .form-section .opcion label {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+
+        /* Estilo especial para checkboxes individuales */
+        .checkbox-individual {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 12px 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-individual:hover {
+            background-color: #e9ecef;
+        }
+
+        .checkbox-individual:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-individual input[type="checkbox"] {
+            width: auto;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-individual label {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        /* Campos condicionales */
+        .campo-condicional {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .campo-condicional label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .campo-condicional input,
+        .campo-condicional select,
+        .campo-condicional textarea {
+            font-size: 14px;
+            padding: 10px 12px;
+        }
+
+        /* Responsive para opciones */
+        @media (max-width: 600px) {
+            .opciones-horizontal {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .opcion {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
-
 <body>
     <div class="container">
         <div class="header">
@@ -393,6 +512,32 @@ function nuevoReporte() {
                     <label for="colegio">Colegio</label>
                     <input type="text" id="colegio" name="colegio" required list="colegiosDatalist" autocomplete="off">
                     <datalist id="colegiosDatalist"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label>¿Es usuario?</label>
+                    <div class="form-section">
+                        <div class="opciones-horizontal">
+                            <div class="opcion">
+                                <input type="radio" name="esUsuario" id="usuario_si" value="Sí">
+                                <label for="usuario_si">Sí</label>
+                            </div>
+                            <div class="opcion">
+                                <input type="radio" name="esUsuario" id="usuario_no" value="No">
+                                <label for="usuario_no">No</label>
+                            </div>
+                        </div>
+
+                        <div id="detalleUsuario" class="campo-condicional" style="display:none;">
+                            <label for="detalleUsuarioInput">¿De qué producto o línea?</label>
+                            <input type="text" id="detalleUsuarioInput" placeholder="Especificar producto o línea">
+                        </div>
+
+                        <div id="detalleCompetencia" class="campo-condicional" style="display:none;">
+                            <label for="detalleCompetenciaInput">¿Qué competencia utiliza?</label>
+                            <input type="text" id="detalleCompetenciaInput" placeholder="Nombre de editorial o producto">
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-row">
@@ -485,6 +630,33 @@ function nuevoReporte() {
                     <textarea id="compromisos" name="compromisos" placeholder="¿Qué se acordó? ¿Cuáles son los próximos pasos?"></textarea>
                 </div>
                 
+                <div class="form-group">
+                    <label>¿Hubo comentarios, quejas o áreas de mejora?</label>
+                    <div class="checkbox-individual">
+                        <input type="checkbox" id="huboQuejas">
+                        <label for="huboQuejas">Sí, hubo comentarios o áreas de mejora</label>
+                    </div>
+
+                    <div id="detalleQuejas" class="campo-condicional" style="display:none;">
+                        <div style="margin-bottom: 15px;">
+                            <label for="categoriaQueja">Categoría:</label>
+                            <select id="categoriaQueja">
+                                <option value="">Selecciona una categoría</option>
+                                <option value="servicio">Servicio</option>
+                                <option value="precio">Precio</option>
+                                <option value="contenido">Contenido</option>
+                                <option value="metodología">Metodología</option>
+                                <option value="impresión">Impresión</option>
+                                <option value="digital">Digital</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="detalleQuejaTexto">Detalle:</label>
+                            <textarea id="detalleQuejaTexto" rows="3" placeholder="Describe el comentario o área de mejora..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="buttons">
                     <button type="button" class="btn-primary" onclick="generarReporte()">
                         📄 Generar Reporte
@@ -634,6 +806,7 @@ function nuevoReporte() {
         window.onload = function() {
             cargarBorradores();
             cargarAutocompletadoColegios();
+            document.getElementById('colegio').focus();
         };
 
         // Funciones para autocompletado de colegios
@@ -744,6 +917,9 @@ function nuevoReporte() {
             // Guardar datos del reporte actual para PDF
             reporteActual = {
                 colegio: formData.get('colegio'),
+                esUsuario: formData.get('esUsuario'),
+                detalleUsuario: document.getElementById('detalleUsuarioInput').value,
+                detalleCompetencia: document.getElementById('detalleCompetenciaInput').value,
                 gerencia: formData.get('gerencia'),
                 zona: formData.get('zona'),
                 fecha: fecha,
@@ -755,7 +931,10 @@ function nuevoReporte() {
                 correoContacto: formData.get('correoContacto'),
                 productos: formData.get('productos'),
                 notas: formData.get('notas'),
-                compromisos: formData.get('compromisos')
+                compromisos: formData.get('compromisos'),
+                huboQuejas: document.getElementById('huboQuejas').checked,
+                categoriaQueja: document.getElementById('categoriaQueja').value,
+                detalleQuejaTexto: document.getElementById('detalleQuejaTexto').value
             };
             
             const reporte = `
@@ -766,6 +945,11 @@ function nuevoReporte() {
 
 <h3>Información General</h3>
 <p><strong>Institución:</strong> ${reporteActual.colegio}</p>
+<p><strong>¿Es usuario?:</strong> ${reporteActual.esUsuario || 'No especificado'}</p>
+${reporteActual.esUsuario === 'Sí' && reporteActual.detalleUsuario ? 
+  `<p><strong>Producto/línea que utiliza:</strong> ${reporteActual.detalleUsuario}</p>` : ''}
+${reporteActual.esUsuario === 'No' && reporteActual.detalleCompetencia ? 
+  `<p><strong>Competencia que utiliza:</strong> ${reporteActual.detalleCompetencia}</p>` : ''}
 <p><strong>Gerencia:</strong> ${reporteActual.gerencia}</p>
 <p><strong>Zona Comercial:</strong> ${reporteActual.zona}</p>
 <p><strong>Fecha de Visita:</strong> ${reporteActual.fechaFormateada}</p>
@@ -789,6 +973,13 @@ function nuevoReporte() {
 
 <h3>Compromisos y Siguientes Pasos</h3>
 <p>${reporteActual.compromisos.replace(/\n/g, '<br>')}</p>
+
+${reporteActual.huboQuejas ? `
+<hr style="margin: 20px 0;">
+<h3>Comentarios y Áreas de Mejora</h3>
+<p><strong>Categoría:</strong> ${reporteActual.categoriaQueja || 'No especificada'}</p>
+<p><strong>Detalle:</strong> ${reporteActual.detalleQuejaTexto.replace(/\n/g, '<br>') || 'No especificado'}</p>
+` : ''}
 
 <hr style="margin: 20px 0;">
 <p><em>Reporte generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}</em></p>
@@ -847,7 +1038,7 @@ function nuevoReporte() {
                 yPos += 15;
                 
                 // Información General
-                verificarEspacio(50);
+                verificarEspacio(60);
                 doc.setFontSize(14);
                 doc.setFont(undefined, 'bold');
                 yPos = agregarTexto('INFORMACIÓN GENERAL', margenIzq, yPos);
@@ -856,6 +1047,13 @@ function nuevoReporte() {
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
                 yPos = agregarTexto(`Institución: ${reporteActual.colegio}`, margenIzq, yPos);
+                yPos = agregarTexto(`¿Es usuario?: ${reporteActual.esUsuario || 'No especificado'}`, margenIzq, yPos);
+                if (reporteActual.esUsuario === 'Sí' && reporteActual.detalleUsuario) {
+                    yPos = agregarTexto(`Producto/línea que utiliza: ${reporteActual.detalleUsuario}`, margenIzq, yPos);
+                }
+                if (reporteActual.esUsuario === 'No' && reporteActual.detalleCompetencia) {
+                    yPos = agregarTexto(`Competencia que utiliza: ${reporteActual.detalleCompetencia}`, margenIzq, yPos);
+                }
                 yPos = agregarTexto(`Gerencia: ${reporteActual.gerencia}`, margenIzq, yPos);
                 yPos = agregarTexto(`Zona Comercial: ${reporteActual.zona}`, margenIzq, yPos);
                 yPos = agregarTexto(`Fecha de Visita: ${reporteActual.fechaFormateada}`, margenIzq, yPos);
@@ -886,7 +1084,7 @@ function nuevoReporte() {
                 
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
-                if (reporteActual.productos.trim()) {
+                if (reporteActual.productos && reporteActual.productos.trim()) {
                     yPos = agregarTexto(reporteActual.productos, margenIzq, yPos);
                 } else {
                     yPos = agregarTexto('No especificado', margenIzq, yPos);
@@ -902,7 +1100,7 @@ function nuevoReporte() {
                 
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
-                if (reporteActual.notas.trim()) {
+                if (reporteActual.notas && reporteActual.notas.trim()) {
                     yPos = agregarTexto(reporteActual.notas, margenIzq, yPos);
                 } else {
                     yPos = agregarTexto('No especificado', margenIzq, yPos);
@@ -918,13 +1116,30 @@ function nuevoReporte() {
                 
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
-                if (reporteActual.compromisos.trim()) {
+                if (reporteActual.compromisos && reporteActual.compromisos.trim()) {
                     yPos = agregarTexto(reporteActual.compromisos, margenIzq, yPos);
                 } else {
                     yPos = agregarTexto('No especificado', margenIzq, yPos);
                 }
                 yPos += 15;
                 
+                // Comentarios y quejas (si existen)
+                if (reporteActual.huboQuejas) {
+                    verificarEspacio(30);
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    yPos = agregarTexto('COMENTARIOS Y ÁREAS DE MEJORA', margenIzq, yPos);
+                    yPos += 5;
+    
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'normal');
+                    yPos = agregarTexto(`Categoría: ${reporteActual.categoriaQueja || 'No especificada'}`, margenIzq, yPos);
+                    if (reporteActual.detalleQuejaTexto && reporteActual.detalleQuejaTexto.trim()) {
+                        yPos = agregarTexto(`Detalle: ${reporteActual.detalleQuejaTexto}`, margenIzq, yPos);
+                    }
+                    yPos += 10;
+                }
+
                 // Pie de página
                 verificarEspacio(20);
                 doc.line(margenIzq, yPos, 210 - margenDer, yPos);
@@ -968,32 +1183,20 @@ function nuevoReporte() {
             const form = document.getElementById('visitaForm');
             const formData = new FormData(form);
 
-            // Validar que campos clave no estén vacíos ni solo con espacios
-            const camposAValidar = [
-                'colegio', 'nombreContacto', 'cargoContacto', 
-                'productos', 'notas', 'compromisos'
-            ];
-
-            for (let campo of camposAValidar) {
-                if (estaVacioOCadenaBlanca(formData.get(campo))) {
-                    mostrarMensaje(`⚠️ El campo "${campo}" no puede estar vacío o solo con espacios`, 'warning');
-                    return;
-                }
+            // Validación mínima: solo colegio es obligatorio para guardar borrador
+            if (!formData.get('colegio') || formData.get('colegio').trim() === '') {
+                mostrarMensaje('⚠️ Ingresa al menos el nombre del colegio para guardar', 'warning');
+                return;
             }
 
-            // Validación específica de teléfono
+            // Validación específica de teléfono solo si se ingresó
             const telefono = formData.get('telefonoContacto');
-            if (!validarTelefono(telefono)) {
+            if (telefono && telefono.trim() && !validarTelefono(telefono)) {
                 mostrarMensaje('⚠️ El teléfono debe tener exactamente 10 dígitos', 'warning');
                 document.getElementById('telefonoContacto').focus();
                 return;
             }
         
-            if (!formData.get('colegio')) {
-                mostrarMensaje('⚠️ Ingresa al menos el nombre del colegio para guardar', 'warning');
-                return;
-            }
-
             const colegio = formData.get('colegio').trim();
             const fecha = formData.get('fecha');
 
@@ -1017,6 +1220,9 @@ function nuevoReporte() {
             const reporte = {
                 id: Date.now(),
                 colegio: formData.get('colegio'),
+                esUsuario: formData.get('esUsuario'),
+                detalleUsuario: document.getElementById('detalleUsuarioInput').value,
+                detalleCompetencia: document.getElementById('detalleCompetenciaInput').value,
                 gerencia: formData.get('gerencia'),
                 zona: formData.get('zona'),
                 fecha: formData.get('fecha'),
@@ -1029,6 +1235,9 @@ function nuevoReporte() {
                 productos: formData.get('productos'),
                 notas: formData.get('notas'),
                 compromisos: formData.get('compromisos'),
+                huboQuejas: document.getElementById('huboQuejas').checked,
+                categoriaQueja: document.getElementById('categoriaQueja').value,
+                detalleQuejaTexto: document.getElementById('detalleQuejaTexto').value,
                 fechaGuardado: new Date().toISOString()
             };
             
@@ -1050,6 +1259,11 @@ University of Dayton Publishing
 
 INFORMACIÓN GENERAL
 Institución: ${reporte.colegio}
+¿Es usuario?: ${reporte.esUsuario || 'No especificado'}
+${reporte.esUsuario === 'Sí' && reporte.detalleUsuario ? 
+  `Producto/línea que utiliza: ${reporte.detalleUsuario}\n` : ''}
+${reporte.esUsuario === 'No' && reporte.detalleCompetencia ? 
+  `Competencia que utiliza: ${reporte.detalleCompetencia}\n` : ''}
 Gerencia: ${reporte.gerencia}
 Zona Comercial: ${reporte.zona}
 Fecha de Visita: ${fechaFormateada}
@@ -1070,7 +1284,11 @@ ${reporte.notas}
 COMPROMISOS Y SIGUIENTES PASOS
 ${reporte.compromisos}
 
-Reporte guardado el ${new Date().toLocaleString('es-MX')}
+${reporte.huboQuejas ? `COMENTARIOS Y ÁREAS DE MEJORA
+Categoría: ${reporte.categoriaQueja || 'No especificada'}
+Detalle: ${reporte.detalleQuejaTexto || 'No especificado'}
+
+` : ''}Reporte guardado el ${new Date().toLocaleString('es-MX')}
 `;
 
             // Crear nombre del archivo
@@ -1141,6 +1359,11 @@ ${'-'.repeat(20)}
 
 INFORMACIÓN GENERAL
 Institución: ${reporte.colegio}
+¿Es usuario?: ${reporte.esUsuario || 'No especificado'}
+${reporte.esUsuario === 'Sí' && reporte.detalleUsuario ? 
+  `Producto/línea que utiliza: ${reporte.detalleUsuario}\n` : ''}
+${reporte.esUsuario === 'No' && reporte.detalleCompetencia ? 
+  `Competencia que utiliza: ${reporte.detalleCompetencia}\n` : ''}
 Gerencia: ${reporte.gerencia}
 Zona Comercial: ${reporte.zona}
 Fecha de Visita: ${fechaFormateada}
@@ -1161,7 +1384,11 @@ ${reporte.notas}
 COMPROMISOS Y SIGUIENTES PASOS
 ${reporte.compromisos}
 
-Guardado: ${fechaGuardado}
+${reporte.huboQuejas ? `COMENTARIOS Y ÁREAS DE MEJORA
+Categoría: ${reporte.categoriaQueja || 'No especificada'}
+Detalle: ${reporte.detalleQuejaTexto || 'No especificado'}
+
+` : ''}Guardado: ${fechaGuardado}
 
 ${'='.repeat(60)}
 
@@ -1403,13 +1630,39 @@ University of Dayton Publishing
                     mostrarCampoOtroObjetivo(); // Para ocultar el campo si no es "Otro"
                 }
                 
+                // Cargar información de usuario
+                if (borrador.esUsuario) {
+                    if (borrador.esUsuario === 'Sí') {
+                        document.getElementById('usuario_si').checked = true;
+                        document.getElementById('detalleUsuario').style.display = 'block';
+                        document.getElementById('detalleUsuarioInput').value = borrador.detalleUsuario || '';
+                        document.getElementById('detalleCompetencia').style.display = 'none';
+                    } else if (borrador.esUsuario === 'No') {
+                        document.getElementById('usuario_no').checked = true;
+                        document.getElementById('detalleCompetencia').style.display = 'block';
+                        document.getElementById('detalleCompetenciaInput').value = borrador.detalleCompetencia || '';
+                        document.getElementById('detalleUsuario').style.display = 'none';
+                    }
+                }
+
                 document.getElementById('nombreContacto').value = borrador.nombreContacto || '';
                 document.getElementById('cargoContacto').value = borrador.cargoContacto || '';
                 document.getElementById('telefonoContacto').value = borrador.telefonoContacto || '';
                 document.getElementById('correoContacto').value = borrador.correoContacto || '';
-                document.getElementById('productos').value = borrador.productos;
-                document.getElementById('notas').value = borrador.notas;
-                document.getElementById('compromisos').value = borrador.compromisos;
+                document.getElementById('productos').value = borrador.productos || '';
+                document.getElementById('notas').value = borrador.notas || '';
+                document.getElementById('compromisos').value = borrador.compromisos || '';
+
+                // Cargar información de quejas
+                if (borrador.huboQuejas) {
+                    document.getElementById('huboQuejas').checked = true;
+                    document.getElementById('detalleQuejas').style.display = 'block';
+                    document.getElementById('categoriaQueja').value = borrador.categoriaQueja || '';
+                    document.getElementById('detalleQuejaTexto').value = borrador.detalleQuejaTexto || '';
+                } else {
+                    document.getElementById('huboQuejas').checked = false;
+                    document.getElementById('detalleQuejas').style.display = 'none';
+                }
                 
                 // Limpiar filtros de búsqueda
                 document.getElementById('searchInput').value = '';
@@ -1459,34 +1712,77 @@ University of Dayton Publishing
             document.body.removeChild(enlace);
         }
 
-        function estaVacioOCadenaBlanca(texto) {
-            return !texto || texto.trim().length === 0;
+        function nuevoReporte() {
+            // Reset del formulario
+            document.getElementById("visitaForm").reset();
+            
+            // Ocultar campos condicionales
+            document.getElementById("detalleUsuario").style.display = "none";
+            document.getElementById("detalleCompetencia").style.display = "none";
+            document.getElementById("detalleQuejas").style.display = "none";
+            document.getElementById("otroObjetivoContainer").style.display = "none";
+            
+            // Limpiar zona select
+            document.getElementById('zona').innerHTML = '<option value="">Primero selecciona una gerencia</option>';
+            
+            // Establecer fecha actual
+            document.getElementById('fecha').valueAsDate = new Date();
+            
+            // Limpiar vista previa
+            limpiarVistaPrevia();
+            
+            // Limpiar mensajes
+            document.getElementById('messages').innerHTML = '';
+            
+            // Focus en primer campo
+            document.getElementById('colegio').focus();
+            
+            mostrarMensaje('📝 Formulario reiniciado para nuevo reporte');
         }
 
-    
-window.onload = () => {
-    document.getElementById('colegio').focus();
-};
+        // Event listeners para campos condicionales
+        document.addEventListener("DOMContentLoaded", function () {
+            const usuarioSi = document.getElementById("usuario_si");
+            const usuarioNo = document.getElementById("usuario_no");
+            const detalleUsuario = document.getElementById("detalleUsuario");
+            const detalleCompetencia = document.getElementById("detalleCompetencia");
+            const huboQuejas = document.getElementById("huboQuejas");
+            const detalleQuejas = document.getElementById("detalleQuejas");
 
-function nuevoReporte() {
-    document.getElementById("visitaForm").reset();
-    limpiarVistaPrevia();
-}
+            if (usuarioSi && usuarioNo) {
+                usuarioSi.addEventListener("change", () => {
+                    if (usuarioSi.checked) {
+                        detalleUsuario.style.display = "block";
+                        detalleCompetencia.style.display = "none";
+                        document.getElementById('detalleCompetenciaInput').value = '';
+                    }
+                });
+                usuarioNo.addEventListener("change", () => {
+                    if (usuarioNo.checked) {
+                        detalleUsuario.style.display = "none";
+                        detalleCompetencia.style.display = "block";
+                        document.getElementById('detalleUsuarioInput').value = '';
+                    }
+                });
+            }
 
-</script>
+            if (huboQuejas) {
+                huboQuejas.addEventListener("change", () => {
+                    if (huboQuejas.checked) {
+                        detalleQuejas.style.display = "block";
+                    } else {
+                        detalleQuejas.style.display = "none";
+                        document.getElementById('categoriaQueja').value = '';
+                        document.getElementById('detalleQuejaTexto').value = '';
+                    }
+                });
+            }
+        });
+    </script>
 
-<footer class="footer-leyenda">
-  Herramienta de uso interno. Propiedad de <strong>University of Dayton Publishing</strong>. Su uso está restringido exclusivamente al personal autorizado.
-</footer>
+    <footer class="footer-leyenda">
+        Herramienta de uso interno. Propiedad de <strong>University of Dayton Publishing</strong>. Su uso está restringido exclusivamente al personal autorizado.
+    </footer>
 
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(reg => console.log('✅ Service Worker registrado'))
-        .catch(err => console.error('❌ Error al registrar SW:', err));
-    }
-  </script>
 </body>
-
 </html>
