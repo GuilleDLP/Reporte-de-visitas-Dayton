@@ -1,7 +1,7 @@
 
 {
   "name": "Reporte de Visitas - UDP",
-  "short_name": "Reporte UDP",
+  "short_name": "Reporte Dayton",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
