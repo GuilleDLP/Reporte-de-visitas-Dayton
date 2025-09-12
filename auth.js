@@ -76,17 +76,27 @@ class SistemaAutenticacion {
     restaurarUsuariosBase() {
         console.log('🔧 Restaurando usuarios base...');
         const usuariosBase = this.obtenerUsuariosBase();
-        const usuariosActuales = this.obtenerUsuarios();
+        const usuariosActuales = this.obtenerUsuarios() || {};
         
-        // Merge: mantener usuarios actuales y agregar los base que falten
-        const usuariosRestaurados = {
-            ...usuariosBase,      // Usuarios base
-            ...usuariosActuales   // Usuarios actuales (tienen prioridad)
-        };
+        console.log('👤 Usuarios actuales:', Object.keys(usuariosActuales));
+        console.log('📦 Usuarios base disponibles:', Object.keys(usuariosBase));
         
-        localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosRestaurados));
-        console.log(`✅ ${Object.keys(usuariosRestaurados).length} usuarios disponibles después de restauración`);
-        return usuariosRestaurados;
+        // Solo agregar usuarios base que NO existan ya
+        let agregados = 0;
+        for (const [userId, usuarioBase] of Object.entries(usuariosBase)) {
+            if (!usuariosActuales[userId]) {
+                usuariosActuales[userId] = usuarioBase;
+                agregados++;
+                console.log(`➕ Agregado usuario faltante: ${usuarioBase.nombre}`);
+            } else {
+                console.log(`✓ Usuario ya existe: ${usuariosActuales[userId].nombre}`);
+            }
+        }
+        
+        // Guardar solo si se agregó algo
+        localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosActuales));
+        console.log(`✅ ${agregados} usuarios base agregados. Total: ${Object.keys(usuariosActuales).length} usuarios`);
+        return usuariosActuales;
     }
 
     obtenerUsuarios() {
