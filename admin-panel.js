@@ -810,6 +810,14 @@ async function sincronizarUsuariosGitHub() {
         boton.textContent = '⏳ Iniciando...';
         boton.disabled = true;
         
+        // Verificar que githubSync esté disponible
+        if (!window.githubSync) {
+            alert('❌ Sistema de GitHub no disponible');
+            boton.textContent = textoOriginal;
+            boton.disabled = false;
+            return;
+        }
+        
         // Verificar configuración de GitHub
         if (!validarConfiguracionGitHub(window.githubSync.config)) {
             alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
