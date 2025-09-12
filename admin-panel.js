@@ -41,6 +41,9 @@ class PanelAdministrador {
                                     <button class="btn-admin btn-info" onclick="sincronizarUsuariosFirebase()">
                                         🔄 Sincronizar con Firebase
                                     </button>
+                                    <button class="btn-admin btn-warning" onclick="restaurarUsuariosBase()">
+                                        🔧 Restaurar Usuarios Base
+                                    </button>
                                     <button class="btn-admin btn-success" onclick="mostrarFormularioNuevoUsuario()">
                                         ➕ Nuevo Usuario
                                     </button>
@@ -857,6 +860,25 @@ async function sincronizarUsuariosFirebase() {
     } finally {
         boton.textContent = textoOriginal;
         boton.disabled = false;
+    }
+}
+
+async function restaurarUsuariosBase() {
+    if (confirm('¿Restaurar usuarios base (admin, hpineda, fvillarreal, gdelaparra, aaguilar)? Esto NO eliminará usuarios existentes, solo agregará los que falten.')) {
+        try {
+            const usuariosRestaurados = sistemaAuth.restaurarUsuariosBase();
+            alert(`✅ Usuarios base restaurados. Total: ${Object.keys(usuariosRestaurados).length} usuarios disponibles.`);
+            
+            // Recargar panel
+            setTimeout(() => {
+                cerrarPanelAdmin();
+                mostrarPanelAdministrador();
+            }, 500);
+            
+        } catch (error) {
+            alert('❌ Error restaurando usuarios: ' + error.message);
+            console.error('Error:', error);
+        }
     }
 }
 
