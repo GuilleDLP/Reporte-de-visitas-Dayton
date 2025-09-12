@@ -327,18 +327,24 @@ class GestorUsuariosFirebase {
     }
 
     async subirTodosLosUsuariosLocales() {
+        console.log('📤 === SUBIENDO USUARIOS LOCALES ===');
+        
         if (!this.inicializado) {
             throw new Error('Firebase no inicializado');
         }
 
         try {
+            console.log('📦 Importando funciones de Firebase...');
             const { setDoc, doc, serverTimestamp } = 
                 await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            console.log('✅ Funciones Firebase importadas');
 
             const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
-            console.log(`📤 Subiendo ${Object.keys(usuariosLocales).length} usuarios locales a Firebase...`);
+            console.log(`👥 ${Object.keys(usuariosLocales).length} usuarios locales para subir:`, Object.keys(usuariosLocales));
             
             for (const [userId, usuario] of Object.entries(usuariosLocales)) {
+                console.log(`⬆️ Subiendo usuario: ${userId} (${usuario.nombre})...`);
+                
                 const usuarioParaFirebase = {
                     ...usuario,
                     password: this.hashPassword(usuario.password),
@@ -346,13 +352,16 @@ class GestorUsuariosFirebase {
                     ultimaActualizacion: new Date().toISOString()
                 };
 
+                console.log(`💾 Guardando en Firebase: usuarios/${userId}...`);
                 await setDoc(doc(this.db, 'usuarios', userId), usuarioParaFirebase);
-                console.log(`✅ Usuario ${usuario.nombre} subido a Firebase`);
+                console.log(`✅ Usuario ${usuario.nombre} subido exitosamente`);
             }
             
+            console.log('🎉 Todos los usuarios subidos exitosamente');
             return usuariosLocales;
+            
         } catch (error) {
-            console.error('❌ Error subiendo usuarios locales:', error);
+            console.error('❌ Error en subirTodosLosUsuariosLocales:', error);
             throw error;
         }
     }
