@@ -2197,19 +2197,19 @@ University of Dayton Publishing
             const textoOriginal = btnSync.innerHTML;
             btnSync.innerHTML = '🔄 Sincronizando...';
             btnSync.disabled = true;
-            statusText.textContent = '🔄 Sincronizando reportes con Firebase...';
+            statusText.textContent = '🔄 Sincronizando reportes con GitHub...';
             
             try {
-                // Inicializar Firebase si no está listo
-                if (!sincronizador || !sincronizador.db) {
-                    mostrarMensaje('⏳ Conectando con Firebase...', 'warning');
-                    sincronizador = new SincronizadorFirebase();
-                    sincronizador.usuarioActual = window.usuarioActual;
-                    await sincronizador.inicializar();
+                // Validar configuración de GitHub
+                if (!validarConfiguracionGitHub(window.githubSync.config)) {
+                    mostrarMensaje('⚠️ Por favor configura GitHub primero', 'warning');
+                    btnSync.innerHTML = textoOriginal;
+                    btnSync.disabled = false;
+                    return;
                 }
                 
-                // Sincronización bidireccional completa
-                await sincronizador.sincronizarBidireccional();
+                // Sincronizar reportes con GitHub
+                const resultado = await window.githubSync.sincronizarReportes();
                 
                 // Actualizar estado
                 await actualizarEstadoSincronizacion();
@@ -2303,7 +2303,7 @@ University of Dayton Publishing
                     return;
                 }
                 
-                githubSync.actualizarConfiguracion(owner, repo, token);
+                window.githubSync.actualizarConfiguracion(owner, repo, token);
                 mostrarMensaje('✅ Configuración guardada', 'success');
                 modal.remove();
             });
@@ -2319,8 +2319,8 @@ University of Dayton Publishing
                 return;
             }
             
-            githubSync.actualizarConfiguracion(owner, repo, token);
-            const resultado = await githubSync.probarConexion();
+            window.githubSync.actualizarConfiguracion(owner, repo, token);
+            const resultado = await window.githubSync.probarConexion();
             
             if (resultado.exito) {
                 mostrarMensaje('✅ Conexión exitosa con GitHub', 'success');
