@@ -787,8 +787,40 @@ function filtrarReportesAdmin() {
 
 async function sincronizarUsuariosFirebase() {
     if (!gestorUsuariosFirebase || !gestorUsuariosFirebase.inicializado) {
-        alert('⚠️ Firebase no está inicializado. Por favor, sincroniza los reportes primero.');
-        return;
+        // Intentar inicializar Firebase para usuarios
+        if (!gestorUsuariosFirebase) {
+            gestorUsuariosFirebase = new GestorUsuariosFirebase();
+        }
+        
+        // Verificar si el sincronizador general está listo
+        if (!window.sincronizador || !window.sincronizador.db) {
+            alert('⚠️ Conectando con Firebase... Por favor, espera un momento e intenta de nuevo.');
+            
+            // Intentar inicializar Firebase
+            try {
+                if (!window.sincronizador) {
+                    window.sincronizador = new SincronizadorFirebase();
+                    window.sincronizador.usuarioActual = window.usuarioActual;
+                    await window.sincronizador.inicializar();
+                }
+                
+                // Inicializar gestor de usuarios
+                await gestorUsuariosFirebase.inicializar();
+                alert('✅ Firebase inicializado. Puedes sincronizar usuarios ahora.');
+                
+            } catch (error) {
+                alert('❌ Error conectando con Firebase: ' + error.message);
+            }
+            return;
+        }
+        
+        // Si Firebase está listo pero el gestor de usuarios no
+        try {
+            await gestorUsuariosFirebase.inicializar();
+        } catch (error) {
+            alert('❌ Error inicializando gestor de usuarios: ' + error.message);
+            return;
+        }
     }
     
     const boton = event.target;
