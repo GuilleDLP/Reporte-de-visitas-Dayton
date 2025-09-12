@@ -48,18 +48,33 @@ class GestorUsuariosFirebase {
                 console.log('📤 Primera sincronización: subiendo usuarios locales a Firebase...');
                 
                 // Si Firebase está vacío, subir usuarios locales
-                const usuariosLocales = sistemaAuth.obtenerUsuarios();
+                const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
                 
-                for (const [userId, usuario] of Object.entries(usuariosLocales)) {
-                    await setDoc(doc(this.db, 'usuarios', userId), {
-                        ...usuario,
-                        password: this.hashPassword(usuario.password), // Hash simple para no guardar en texto plano
-                        fechaSincronizacion: new Date().toISOString()
-                    });
-                    console.log(`✅ Usuario ${usuario.nombre} subido a Firebase`);
+                if (Object.keys(usuariosLocales).length === 0) {
+                    console.log('⚠️ No hay usuarios locales, restaurando usuarios base...');
+                    const usuariosRestaurados = sistemaAuth.restaurarUsuariosBase();
+                    // Subir usuarios base a Firebase
+                    for (const [userId, usuario] of Object.entries(usuariosRestaurados)) {
+                        await setDoc(doc(this.db, 'usuarios', userId), {
+                            ...usuario,
+                            password: this.hashPassword(usuario.password),
+                            fechaSincronizacion: new Date().toISOString()
+                        });
+                        console.log(`✅ Usuario base ${usuario.nombre} subido a Firebase`);
+                    }
+                    this.usuariosCache = usuariosRestaurados;
+                } else {
+                    // Subir usuarios locales existentes
+                    for (const [userId, usuario] of Object.entries(usuariosLocales)) {
+                        await setDoc(doc(this.db, 'usuarios', userId), {
+                            ...usuario,
+                            password: this.hashPassword(usuario.password), // Hash simple para no guardar en texto plano
+                            fechaSincronizacion: new Date().toISOString()
+                        });
+                        console.log(`✅ Usuario ${usuario.nombre} subido a Firebase`);
+                    }
+                    this.usuariosCache = usuariosLocales;
                 }
-                
-                this.usuariosCache = usuariosLocales;
                 
             } else {
                 console.log('📥 Mezclando usuarios de Firebase con locales...');
@@ -134,13 +149,21 @@ class GestorUsuariosFirebase {
                 }
             });
             
-            // Actualizar cache local solo si tenemos datos válidos
-            if (Object.keys(usuarios).length > 0) {
-                this.usuariosCache = usuarios;
-                localStorage.setItem('udp_usuarios', JSON.stringify(usuarios));
+            // IMPORTANTE: Hacer merge con usuarios locales existentes
+            const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+            const usuariosCombinados = {
+                ...usuariosLocales,  // Mantener usuarios locales
+                ...usuarios          // Actualizar/agregar desde Firebase
+            };
+            
+            // Actualizar cache y localStorage con el merge
+            if (Object.keys(usuariosCombinados).length > 0) {
+                this.usuariosCache = usuariosCombinados;
+                localStorage.setItem('udp_usuarios', JSON.stringify(usuariosCombinados));
             }
             
-            return usuarios;
+            console.log(`📊 Merge completado: ${Object.keys(usuarios).length} de Firebase + ${Object.keys(usuariosLocales).length} locales = ${Object.keys(usuariosCombinados).length} total`);
+            return usuariosCombinados;
             
         } catch (error) {
             console.error('❌ Error obteniendo usuarios de Firebase:', error);
@@ -322,6 +345,37 @@ class GestorUsuariosFirebase {
         }
     }
 
+    async subirTodosLosUsuariosLocales() {
+        if (!this.inicializado) {
+            throw new Error('Firebase no inicializado');
+        }
+
+        try {
+            const { setDoc, doc, serverTimestamp } = 
+                await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+
+            const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+            console.log(`📤 Subiendo ${Object.keys(usuariosLocales).length} usuarios locales a Firebase...`);
+            
+            for (const [userId, usuario] of Object.entries(usuariosLocales)) {
+                const usuarioParaFirebase = {
+                    ...usuario,
+                    password: this.hashPassword(usuario.password),
+                    fechaSincronizacion: serverTimestamp(),
+                    ultimaActualizacion: new Date().toISOString()
+                };
+
+                await setDoc(doc(this.db, 'usuarios', userId), usuarioParaFirebase);
+                console.log(`✅ Usuario ${usuario.nombre} subido a Firebase`);
+            }
+            
+            return usuariosLocales;
+        } catch (error) {
+            console.error('❌ Error subiendo usuarios locales:', error);
+            throw error;
+        }
+    }
+
     async sincronizarConFirebase() {
         if (!this.inicializado || this.sincronizando) return;
         
@@ -329,6 +383,12 @@ class GestorUsuariosFirebase {
         console.log('🔄 Sincronizando usuarios con Firebase...');
         
         try {
+            // Primero, asegurar que todos los usuarios locales están en Firebase
+            console.log('📤 Paso 1: Subiendo usuarios locales a Firebase...');
+            await this.subirTodosLosUsuariosLocales();
+            
+            // Luego, obtener la versión combinada
+            console.log('📥 Paso 2: Obteniendo versión final combinada...');
             const usuarios = await this.obtenerUsuarios();
             
             // Verificar que usuarios no sea null o undefined
@@ -338,7 +398,7 @@ class GestorUsuariosFirebase {
                 return usuariosLocales || {};
             }
             
-            console.log(`✅ ${Object.keys(usuarios).length} usuarios sincronizados`);
+            console.log(`✅ ${Object.keys(usuarios).length} usuarios sincronizados completamente`);
             return usuarios;
         } catch (error) {
             console.error('❌ Error sincronizando usuarios:', error);
