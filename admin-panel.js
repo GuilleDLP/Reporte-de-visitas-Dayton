@@ -38,8 +38,8 @@ class PanelAdministrador {
                             <div class="section-header">
                                 <h3>Gestión de Usuarios</h3>
                                 <div>
-                                    <button class="btn-admin btn-info" onclick="sincronizarUsuariosFirebase()">
-                                        🔄 Sincronizar con Firebase
+                                    <button class="btn-admin btn-info" onclick="sincronizarUsuariosGitHub()">
+                                        🔄 Sincronizar con GitHub
                                     </button>
                                     <button class="btn-admin btn-warning" onclick="restaurarUsuariosBase()">
                                         🔧 Restaurar Usuarios Base
@@ -800,95 +800,57 @@ function filtrarReportesAdmin() {
     panel.filtrarReportesAdmin();
 }
 
-async function sincronizarUsuariosFirebase() {
+async function sincronizarUsuariosGitHub() {
     const boton = event.target;
     const textoOriginal = boton.textContent;
     
-    console.log('🔄 === INICIO SINCRONIZACIÓN USUARIOS ===');
+    console.log('🔄 === INICIO SINCRONIZACIÓN USUARIOS CON GITHUB ===');
     
     try {
-        boton.textContent = '⏳ Inicializando...';
+        boton.textContent = '⏳ Iniciando...';
         boton.disabled = true;
         
-        // Paso 1: Verificar usuarios locales
-        console.log('👥 Paso 1: Verificando usuarios locales...');
+        // Verificar configuración de GitHub
+        if (!validarConfiguracionGitHub(githubSync.config)) {
+            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
+            boton.textContent = textoOriginal;
+            boton.disabled = false;
+            return;
+        }
+        
+        // Verificar usuarios locales
+        console.log('👥 Verificando usuarios locales...');
         const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
         console.log('📊 Usuarios locales encontrados:', Object.keys(usuariosLocales));
         
         if (Object.keys(usuariosLocales).length === 0) {
             alert('⚠️ No hay usuarios locales. Usa "Restaurar Usuarios Base" primero.');
+            boton.textContent = textoOriginal;
+            boton.disabled = false;
             return;
         }
         
-        // Paso 2: Verificar/inicializar Firebase
-        console.log('🔥 Paso 2: Verificando Firebase...');
-        if (!gestorUsuariosFirebase) {
-            console.log('➕ Creando gestor de usuarios...');
-            gestorUsuariosFirebase = new GestorUsuariosFirebase();
-        }
+        // Sincronizar con GitHub
+        boton.textContent = '🔄 Sincronizando con GitHub...';
+        console.log('🌐 Sincronizando usuarios con GitHub...');
         
-        // Verificar si el sincronizador general está listo
-        if (!window.sincronizador || !window.sincronizador.db) {
-            console.log('🚀 Inicializando sincronizador general...');
-            boton.textContent = '⏳ Conectando Firebase...';
-            
-            if (!window.sincronizador) {
-                window.sincronizador = new SincronizadorFirebase();
-                window.sincronizador.usuarioActual = window.usuarioActual;
-            }
-            
-            console.log('🔗 Conectando con Firebase...');
-            await window.sincronizador.inicializar();
-            console.log('✅ Sincronizador general listo');
-        }
+        const resultado = await githubSync.sincronizarUsuarios();
         
-        // Inicializar gestor de usuarios si no está listo
-        if (!gestorUsuariosFirebase.inicializado) {
-            console.log('⚙️ Inicializando gestor de usuarios...');
-            boton.textContent = '⏳ Preparando usuarios...';
-            await gestorUsuariosFirebase.inicializar();
-            console.log('✅ Gestor de usuarios listo');
+        if (resultado.exito) {
+            console.log('✅ Sincronización exitosa:', resultado);
+            alert(`✅ Sincronización completada: ${resultado.cantidad} usuarios sincronizados`);
+            panelAdmin.cargarUsuarios();
+        } else {
+            throw new Error(resultado.error || 'Error desconocido');
         }
-        
-        // Paso 3: Sincronizar con timeout
         console.log('☁️ Paso 3: Subiendo usuarios a Firebase...');
         boton.textContent = '⏳ Subiendo usuarios...';
         
         // Agregar timeout para evitar que se quede colgado
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout: Sincronización tardó más de 30 segundos')), 30000);
-        });
-        
-        const syncPromise = gestorUsuariosFirebase.sincronizarConFirebase();
-        
-        const resultado = await Promise.race([syncPromise, timeoutPromise]);
-        
-        console.log('✅ Sincronización completada:', resultado);
-        const cantidadUsuarios = Object.keys(usuariosLocales).length;
-        alert(`✅ ${cantidadUsuarios} usuarios subidos a Firebase exitosamente`);
-        
-        // Recargar panel
-        console.log('🔄 Recargando panel...');
-        setTimeout(() => {
-            cerrarPanelAdmin();
-            mostrarPanelAdministrador();
-        }, 500);
         
     } catch (error) {
         console.error('❌ Error en sincronización:', error);
-        
-        const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
-        const cantidadUsuarios = Object.keys(usuariosLocales).length;
-        
-        if (error.message?.includes('Timeout')) {
-            alert(`⏱️ Sincronización lenta. Usuarios locales OK (${cantidadUsuarios}). Reintenta si es necesario.`);
-        } else if (cantidadUsuarios > 0) {
-            alert(`⚠️ Usuarios locales OK (${cantidadUsuarios}), pero error conectando Firebase: ${error.message || 'Error desconocido'}`);
-        } else {
-            alert('❌ No hay usuarios locales y error conectando Firebase. Usa "Restaurar Usuarios Base" primero.');
-        }
-        
-        console.error('Error completo:', error);
+        alert(`❌ Error sincronizando con GitHub: ${error.message}`);
         
     } finally {
         console.log('🏁 === FIN SINCRONIZACIÓN USUARIOS ===');
