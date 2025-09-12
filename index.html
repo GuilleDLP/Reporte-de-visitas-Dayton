@@ -2336,23 +2336,34 @@ University of Dayton Publishing
             }
         }
         
-        // Agregar botón de configuración de GitHub
+        // Agregar botón de configuración de GitHub (solo para admin)
         setTimeout(() => {
-            const header = document.querySelector('.header');
-            if (header && !document.getElementById('btnConfigGitHub')) {
-                const btnConfig = document.createElement('button');
-                btnConfig.id = 'btnConfigGitHub';
-                btnConfig.className = 'btn-small btn-info';
-                btnConfig.innerHTML = '⚙️ Config GitHub';
-                btnConfig.onclick = mostrarConfiguracionGitHub;
-                btnConfig.style.marginLeft = '10px';
-                
-                const userInfo = header.querySelector('.user-info');
-                if (userInfo) {
-                    userInfo.appendChild(btnConfig);
+            // Solo mostrar si el usuario es admin
+            if (sistemaAuth && sistemaAuth.esAdmin()) {
+                const header = document.querySelector('.header');
+                if (header && !document.getElementById('btnConfigGitHub')) {
+                    const btnConfig = document.createElement('button');
+                    btnConfig.id = 'btnConfigGitHub';
+                    btnConfig.className = 'btn-small btn-info';
+                    btnConfig.innerHTML = '⚙️ Config GitHub';
+                    btnConfig.onclick = mostrarConfiguracionGitHub;
+                    btnConfig.style.marginLeft = '10px';
+                    
+                    // Buscar donde insertar el botón
+                    const userInfo = document.getElementById('userInfo');
+                    if (userInfo) {
+                        // Insertarlo después del span de usuario
+                        userInfo.parentElement.insertBefore(btnConfig, userInfo.nextSibling);
+                    } else {
+                        // Si no encuentra userInfo, agregarlo al header directamente
+                        const headerContent = header.querySelector('h1');
+                        if (headerContent) {
+                            header.insertBefore(btnConfig, headerContent.nextSibling);
+                        }
+                    }
                 }
             }
-        }, 1000);
+        }, 2000); // Aumentar tiempo para asegurar que auth esté listo
         
     </script>
 
