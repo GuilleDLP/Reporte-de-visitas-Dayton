@@ -10,7 +10,16 @@ class SistemaAutenticacion {
 
     // Usuarios base del sistema (en producción esto estaría en Firebase)
     inicializarUsuariosBase() {
-        const usuariosBase = {
+        const usuariosBase = this.obtenerUsuariosBase();
+        
+        // Solo inicializar si no existen usuarios
+        if (!localStorage.getItem(this.usuariosKey)) {
+            localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosBase));
+        }
+    }
+
+    obtenerUsuariosBase() {
+        return {
             'admin': {
                 id: 'admin',
                 nombre: 'Administrador',
@@ -62,11 +71,22 @@ class SistemaAutenticacion {
                 ultimoAcceso: null
             }
         };
+    }
 
-        // Solo inicializar si no existen usuarios
-        if (!localStorage.getItem(this.usuariosKey)) {
-            localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosBase));
-        }
+    restaurarUsuariosBase() {
+        console.log('🔧 Restaurando usuarios base...');
+        const usuariosBase = this.obtenerUsuariosBase();
+        const usuariosActuales = this.obtenerUsuarios();
+        
+        // Merge: mantener usuarios actuales y agregar los base que falten
+        const usuariosRestaurados = {
+            ...usuariosBase,      // Usuarios base
+            ...usuariosActuales   // Usuarios actuales (tienen prioridad)
+        };
+        
+        localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosRestaurados));
+        console.log(`✅ ${Object.keys(usuariosRestaurados).length} usuarios disponibles después de restauración`);
+        return usuariosRestaurados;
     }
 
     obtenerUsuarios() {
