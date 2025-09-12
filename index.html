@@ -12,10 +12,10 @@
     <script src="./auth.js" defer></script>
     <!-- Panel de administrador -->
     <script src="./admin-panel.js" defer></script>
-    <!-- Sistema de sincronización Firebase -->
-    <script src="./firebase-sync.js" defer></script>
-    <!-- Sincronización de usuarios con Firebase -->
-    <script src="./firebase-users.js" defer></script>
+    <!-- Configuración de GitHub -->
+    <script src="./github-config.js" defer></script>
+    <!-- Sistema de sincronización GitHub -->
+    <script src="./github-sync.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -2146,8 +2146,8 @@ University of Dayton Publishing
         async function actualizarEstadoSincronizacion() {
             try {
                 const reportesLocales = await reportesDB.obtenerTodosLosReportes();
-                const pendientes = reportesLocales.filter(r => !r.sincronizadoFirebase);
-                const sincronizados = reportesLocales.filter(r => r.sincronizadoFirebase);
+                const pendientes = reportesLocales.filter(r => !r.sincronizadoGitHub);
+                const sincronizados = reportesLocales.filter(r => r.sincronizadoGitHub);
                 
                 const statusBar = document.getElementById('syncStatus');
                 const statusText = document.getElementById('syncStatusText');
@@ -2224,7 +2224,7 @@ University of Dayton Publishing
                 
                 // Mostrar resumen de sincronización
                 const reportesLocales = await reportesDB.obtenerTodosLosReportes();
-                const sincronizados = reportesLocales.filter(r => r.sincronizadoFirebase);
+                const sincronizados = reportesLocales.filter(r => r.sincronizadoGitHub);
                 mostrarMensaje(`✅ Sincronización completada: ${sincronizados.length} reportes en la nube`, 'success');
                 
             } catch (error) {
@@ -2259,6 +2259,100 @@ University of Dayton Publishing
             actualizarEstadoSincronizacion();
             mostrarMensaje('🔴 Sin conexión', 'warning');
         });
+        
+        // Función para mostrar configuración de GitHub
+        function mostrarConfiguracionGitHub() {
+            const config = cargarConfiguracionGitHub();
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000';
+            
+            modal.innerHTML = `
+                <div style="background:white;padding:30px;border-radius:10px;max-width:500px;width:90%">
+                    <h2 style="margin-bottom:20px">⚙️ Configuración de GitHub</h2>
+                    <form id="githubConfigForm">
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Usuario de GitHub:</label>
+                            <input type="text" id="githubOwner" value="${config.owner || ''}" 
+                                   placeholder="tu-usuario" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                        </div>
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Repositorio:</label>
+                            <input type="text" id="githubRepo" value="${config.repo || ''}" 
+                                   placeholder="nombre-repositorio" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                        </div>
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Personal Access Token:</label>
+                            <input type="password" id="githubToken" value="${config.token || ''}" 
+                                   placeholder="ghp_xxxxxxxxxxxx" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                            <small style="color:#666">Necesitas un token con permisos de repo. 
+                            <a href="https://github.com/settings/tokens/new" target="_blank">Crear token</a></small>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:20px">
+                            <button type="submit" class="btn-small btn-success">💾 Guardar</button>
+                            <button type="button" onclick="this.closest('.modal-overlay').remove()" class="btn-small">Cancelar</button>
+                            <button type="button" onclick="probarConexionGitHub()" class="btn-small btn-info">🔗 Probar Conexión</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            document.getElementById('githubConfigForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const owner = document.getElementById('githubOwner').value;
+                const repo = document.getElementById('githubRepo').value;
+                const token = document.getElementById('githubToken').value;
+                
+                if (!owner || !repo || !token) {
+                    mostrarMensaje('❌ Todos los campos son requeridos', 'error');
+                    return;
+                }
+                
+                githubSync.actualizarConfiguracion(owner, repo, token);
+                mostrarMensaje('✅ Configuración guardada', 'success');
+                modal.remove();
+            });
+        }
+        
+        async function probarConexionGitHub() {
+            const owner = document.getElementById('githubOwner').value;
+            const repo = document.getElementById('githubRepo').value;
+            const token = document.getElementById('githubToken').value;
+            
+            if (!owner || !repo || !token) {
+                mostrarMensaje('❌ Completa todos los campos primero', 'error');
+                return;
+            }
+            
+            githubSync.actualizarConfiguracion(owner, repo, token);
+            const resultado = await githubSync.probarConexion();
+            
+            if (resultado.exito) {
+                mostrarMensaje('✅ Conexión exitosa con GitHub', 'success');
+            } else {
+                mostrarMensaje('❌ Error de conexión: ' + resultado.error, 'error');
+            }
+        }
+        
+        // Agregar botón de configuración de GitHub
+        setTimeout(() => {
+            const header = document.querySelector('.header');
+            if (header && !document.getElementById('btnConfigGitHub')) {
+                const btnConfig = document.createElement('button');
+                btnConfig.id = 'btnConfigGitHub';
+                btnConfig.className = 'btn-small btn-info';
+                btnConfig.innerHTML = '⚙️ Config GitHub';
+                btnConfig.onclick = mostrarConfiguracionGitHub;
+                btnConfig.style.marginLeft = '10px';
+                
+                const userInfo = header.querySelector('.user-info');
+                if (userInfo) {
+                    userInfo.appendChild(btnConfig);
+                }
+            }
+        }, 1000);
         
     </script>
 
