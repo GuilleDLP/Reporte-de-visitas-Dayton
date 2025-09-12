@@ -811,7 +811,7 @@ async function sincronizarUsuariosGitHub() {
         boton.disabled = true;
         
         // Verificar configuración de GitHub
-        if (!validarConfiguracionGitHub(githubSync.config)) {
+        if (!validarConfiguracionGitHub(window.githubSync.config)) {
             alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
             boton.textContent = textoOriginal;
             boton.disabled = false;
@@ -834,7 +834,7 @@ async function sincronizarUsuariosGitHub() {
         boton.textContent = '🔄 Sincronizando con GitHub...';
         console.log('🌐 Sincronizando usuarios con GitHub...');
         
-        const resultado = await githubSync.sincronizarUsuarios();
+        const resultado = await window.githubSync.sincronizarUsuarios();
         
         if (resultado.exito) {
             console.log('✅ Sincronización exitosa:', resultado);
