@@ -20,20 +20,34 @@ class SincronizadorFirebase {
 
     async inicializar() {
         try {
+            console.log('🔥 Inicializando Firebase con configuración:', {
+                projectId: firebaseConfig.projectId,
+                authDomain: firebaseConfig.authDomain
+            });
+
             // Importar Firebase dinámicamente
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-            const { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, serverTimestamp, enableIndexedDbPersistence } = 
+            const { getFirestore, collection, addDoc, getDocs, query, where, updateDoc, doc, serverTimestamp, enableIndexedDbPersistence, connectFirestoreEmulator } = 
                 await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
             const { getAuth, signInAnonymously, onAuthStateChanged } = 
                 await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
 
             // Inicializar Firebase
+            console.log('📱 Creando app Firebase...');
             const app = initializeApp(firebaseConfig);
-            this.db = getFirestore(app);
-            this.auth = getAuth(app);
+            console.log('✅ App Firebase creada');
 
-            // Habilitar persistencia offline
+            console.log('🗄️ Conectando Firestore...');
+            this.db = getFirestore(app);
+            console.log('✅ Firestore conectado');
+
+            console.log('🔐 Configurando Auth...');
+            this.auth = getAuth(app);
+            console.log('✅ Auth configurado');
+
+            // Habilitar persistencia offline (sin bloquear si falla)
             try {
+                console.log('💾 Habilitando persistencia offline...');
                 await enableIndexedDbPersistence(this.db);
                 console.log('✅ Persistencia offline habilitada');
             } catch (err) {
@@ -41,18 +55,39 @@ class SincronizadorFirebase {
                     console.warn('⚠️ Múltiples pestañas abiertas, persistencia solo en una');
                 } else if (err.code === 'unimplemented') {
                     console.warn('⚠️ Navegador no soporta persistencia offline');
+                } else {
+                    console.warn('⚠️ Error en persistencia offline:', err.message);
                 }
+                // Continuar sin persistencia offline
             }
 
             // Autenticación anónima
+            console.log('👤 Iniciando autenticación...');
             await this.autenticar();
+            console.log('✅ Autenticación completada');
 
             // Escuchar cambios de conexión
             this.configurarListeners();
 
+            console.log('🎉 Firebase inicializado completamente');
             return true;
+            
         } catch (error) {
-            console.error('❌ Error inicializando Firebase:', error);
+            console.error('❌ Error detallado inicializando Firebase:', {
+                message: error.message,
+                code: error.code,
+                stack: error.stack
+            });
+            
+            // Intentar diagnosticar el problema
+            if (error.message?.includes('auth')) {
+                console.error('🔐 Error de autenticación - verificar configuración');
+            } else if (error.message?.includes('firestore')) {
+                console.error('🗄️ Error de Firestore - verificar permisos');
+            } else if (error.message?.includes('network')) {
+                console.error('🌐 Error de red - verificar conexión');
+            }
+            
             return false;
         }
     }
@@ -465,4 +500,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// ============== FUNCIÓN DE PRUEBA FIREBASE ==============
+async function probarFirebaseBasico() {
+    console.log('🧪 === PRUEBA BÁSICA DE FIREBASE ===');
+    
+    try {
+        // Paso 1: Verificar configuración
+        console.log('1️⃣ Verificando configuración...', firebaseConfig);
+        
+        // Paso 2: Importar Firebase
+        console.log('2️⃣ Importando Firebase...');
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getFirestore, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+        console.log('✅ Firebase importado');
+        
+        // Paso 3: Inicializar app
+        console.log('3️⃣ Inicializando app...');
+        const app = initializeApp(firebaseConfig);
+        console.log('✅ App inicializada');
+        
+        // Paso 4: Conectar Firestore
+        console.log('4️⃣ Conectando Firestore...');
+        const db = getFirestore(app);
+        console.log('✅ Firestore conectado');
+        
+        // Paso 5: Prueba simple de escritura
+        console.log('5️⃣ Prueba de escritura...');
+        const testDoc = doc(db, 'prueba', 'test-' + Date.now());
+        await setDoc(testDoc, {
+            mensaje: 'Prueba de conexión',
+            timestamp: new Date().toISOString(),
+            usuario: 'test'
+        });
+        console.log('✅ Escritura exitosa');
+        
+        console.log('🎉 FIREBASE FUNCIONA CORRECTAMENTE');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error en prueba Firebase:', error);
+        return false;
+    }
+}
+
+// Hacer prueba disponible globalmente
+window.probarFirebase = probarFirebaseBasico;
+
 console.log('🚀 Módulo de sincronización Firebase cargado');
+console.log('💡 Ejecuta "probarFirebase()" en la consola para probar Firebase');;
