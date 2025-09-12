@@ -2202,10 +2202,16 @@ University of Dayton Publishing
             try {
                 // Verificar que githubSync esté disponible
                 if (!window.githubSync) {
-                    mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
-                    btnSync.innerHTML = textoOriginal;
-                    btnSync.disabled = false;
-                    return;
+                    console.log('🔧 Inicializando githubSync desde sincronizarReportesManual');
+                    if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                        window.githubSync = new GitHubSync();
+                        console.log('✅ githubSync inicializado manualmente');
+                    } else {
+                        mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
+                        btnSync.innerHTML = textoOriginal;
+                        btnSync.disabled = false;
+                        return;
+                    }
                 }
                 
                 // Validar configuración de GitHub
@@ -2263,6 +2269,18 @@ University of Dayton Publishing
         
         // Función para mostrar configuración de GitHub
         function mostrarConfiguracionGitHub() {
+            // Verificar si githubSync está disponible, si no, inicializarlo
+            if (!window.githubSync) {
+                console.log('🔧 Inicializando githubSync desde mostrarConfiguracionGitHub');
+                if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ githubSync inicializado manualmente');
+                } else {
+                    alert('❌ Error: Sistema de GitHub no disponible. Recarga la página.');
+                    return;
+                }
+            }
+            
             const config = cargarConfiguracionGitHub();
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
@@ -2332,9 +2350,16 @@ University of Dayton Publishing
                 return;
             }
             
+            // Verificar si githubSync está disponible, si no, inicializarlo
             if (!window.githubSync) {
-                mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
-                return;
+                console.log('🔧 Inicializando githubSync desde probarConexionGitHub');
+                if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ githubSync inicializado manualmente');
+                } else {
+                    mostrarMensaje('❌ Sistema de GitHub no disponible. Recarga la página.', 'error');
+                    return;
+                }
             }
             
             window.githubSync.actualizarConfiguracion(owner, repo, token);
