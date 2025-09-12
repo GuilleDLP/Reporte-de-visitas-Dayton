@@ -291,5 +291,25 @@ class GitHubSync {
     }
 }
 
-// Instancia global - disponible en window
-window.githubSync = new GitHubSync();
+// Función para inicializar githubSync cuando el DOM esté listo
+function inicializarGitHubSync() {
+    if (typeof cargarConfiguracionGitHub === 'function') {
+        window.githubSync = new GitHubSync();
+        console.log('✅ GitHubSync inicializado correctamente');
+        return true;
+    } else {
+        console.warn('⚠️ Funciones de configuración no disponibles aún');
+        return false;
+    }
+}
+
+// Intentar inicializar inmediatamente
+if (!inicializarGitHubSync()) {
+    // Si falla, intentar de nuevo después de que se cargue el DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializarGitHubSync);
+    } else {
+        // Si el DOM ya está listo, esperar un poco más
+        setTimeout(inicializarGitHubSync, 100);
+    }
+}
