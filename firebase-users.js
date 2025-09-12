@@ -62,24 +62,36 @@ class GestorUsuariosFirebase {
                 this.usuariosCache = usuariosLocales;
                 
             } else {
-                console.log('📥 Descargando usuarios desde Firebase...');
+                console.log('📥 Mezclando usuarios de Firebase con locales...');
                 
-                // Si Firebase tiene datos, descargar y actualizar local
+                // Obtener usuarios locales actuales
+                const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+                
+                // Si Firebase tiene datos, hacer merge inteligente
                 const usuariosFirebase = {};
                 
                 snapshot.forEach((doc) => {
                     const datos = doc.data();
-                    usuariosFirebase[doc.id] = {
-                        ...datos,
-                        password: this.unhashPassword(datos.password) // Decodificar para uso local
-                    };
+                    if (datos && doc.id) {
+                        usuariosFirebase[doc.id] = {
+                            ...datos,
+                            password: datos.password ? this.unhashPassword(datos.password) : ''
+                        };
+                    }
                 });
                 
-                // Actualizar almacenamiento local
-                localStorage.setItem('udp_usuarios', JSON.stringify(usuariosFirebase));
-                this.usuariosCache = usuariosFirebase;
+                // Merge: Combinar usuarios locales con Firebase (Firebase tiene prioridad para conflictos)
+                const usuariosCombinados = {
+                    ...usuariosLocales,  // Mantener usuarios locales
+                    ...usuariosFirebase  // Agregar/actualizar con Firebase
+                };
                 
-                console.log(`✅ ${Object.keys(usuariosFirebase).length} usuarios sincronizados desde Firebase`);
+                // Actualizar almacenamiento local con el merge
+                localStorage.setItem('udp_usuarios', JSON.stringify(usuariosCombinados));
+                this.usuariosCache = usuariosCombinados;
+                
+                console.log(`✅ ${Object.keys(usuariosFirebase).length} usuarios de Firebase mezclados con ${Object.keys(usuariosLocales).length} locales`);
+                console.log(`📊 Total final: ${Object.keys(usuariosCombinados).length} usuarios`);
             }
             
         } catch (error) {
