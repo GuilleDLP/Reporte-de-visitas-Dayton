@@ -291,5 +291,5 @@ class GitHubSync {
     }
 }
 
-// Instancia global
-const githubSync = new GitHubSync();
+// Instancia global - disponible en window
+window.githubSync = new GitHubSync();
