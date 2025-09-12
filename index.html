@@ -621,6 +621,7 @@
             <div class="header-right" id="userInfo" style="display: none;">
                 <div class="user-info">
                     <span id="userName"></span>
+                    <button id="btnConfigGitHub" class="btn-small btn-info" onclick="mostrarConfiguracionGitHub()" style="display: none; margin-right: 10px;">⚙️ Config GitHub</button>
                     <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
                 </div>
             </div>
@@ -2101,34 +2102,26 @@ University of Dayton Publishing
             // Configurar variables globales del usuario
             window.usuarioActual = usuario;
             
-            // Si es administrador, mostrar botón de panel admin
-            if (usuario.rol === 'administrador' && interfazLogin) {
-                interfazLogin.mostrarPanelAdmin();
+            // Si es administrador, mostrar botón de panel admin y config GitHub
+            if (usuario.rol === 'administrador') {
+                if (interfazLogin) {
+                    interfazLogin.mostrarPanelAdmin();
+                }
+                // Mostrar botón de configuración de GitHub
+                const btnConfigGitHub = document.getElementById('btnConfigGitHub');
+                if (btnConfigGitHub) {
+                    btnConfigGitHub.style.display = 'inline-block';
+                    console.log('✅ Botón Config GitHub activado para admin');
+                }
             }
             
-            // Inicializar sincronización con Firebase automáticamente
+            // Actualizar estado de sincronización al iniciar
             setTimeout(async () => {
-                if (!sincronizador) {
-                    console.log('🚀 Inicializando Firebase automáticamente...');
-                    sincronizador = new SincronizadorFirebase();
-                    sincronizador.usuarioActual = usuario;
-                    const inicializado = await sincronizador.inicializar();
-                    
-                    if (inicializado) {
-                        console.log('✅ Firebase listo para sincronización');
-                        // Sincronizar automáticamente al inicio
-                        if (navigator.onLine) {
-                            console.log('🔄 Sincronizando datos al inicio...');
-                            await sincronizador.sincronizarBidireccional();
-                            // Asegurar que la UI se actualice después de la sincronización
-                            if (typeof cargarBorradores === 'function') {
-                                await cargarBorradores();
-                            }
-                            await actualizarEstadoSincronizacion();
-                        }
-                    }
+                if (typeof cargarBorradores === 'function') {
+                    await cargarBorradores();
                 }
-            }, 2000);
+                await actualizarEstadoSincronizacion();
+            }, 1000);
         }
         
         function cerrarSesion() {
@@ -2336,34 +2329,27 @@ University of Dayton Publishing
             }
         }
         
-        // Agregar botón de configuración de GitHub (solo para admin)
-        setTimeout(() => {
-            // Solo mostrar si el usuario es admin
-            if (sistemaAuth && sistemaAuth.esAdmin()) {
-                const header = document.querySelector('.header');
-                if (header && !document.getElementById('btnConfigGitHub')) {
-                    const btnConfig = document.createElement('button');
-                    btnConfig.id = 'btnConfigGitHub';
-                    btnConfig.className = 'btn-small btn-info';
-                    btnConfig.innerHTML = '⚙️ Config GitHub';
-                    btnConfig.onclick = mostrarConfiguracionGitHub;
-                    btnConfig.style.marginLeft = '10px';
-                    
-                    // Buscar donde insertar el botón
-                    const userInfo = document.getElementById('userInfo');
-                    if (userInfo) {
-                        // Insertarlo después del span de usuario
-                        userInfo.parentElement.insertBefore(btnConfig, userInfo.nextSibling);
-                    } else {
-                        // Si no encuentra userInfo, agregarlo al header directamente
-                        const headerContent = header.querySelector('h1');
-                        if (headerContent) {
-                            header.insertBefore(btnConfig, headerContent.nextSibling);
-                        }
-                    }
+        // Mostrar botón de configuración de GitHub solo para admin
+        function actualizarBotonGitHub() {
+            const btnConfig = document.getElementById('btnConfigGitHub');
+            if (btnConfig) {
+                if (sistemaAuth && sistemaAuth.esAdmin()) {
+                    btnConfig.style.display = 'inline-block';
+                } else {
+                    btnConfig.style.display = 'none';
                 }
             }
-        }, 2000); // Aumentar tiempo para asegurar que auth esté listo
+        }
+        
+        // Verificar cada 2 segundos si el usuario es admin
+        setInterval(() => {
+            actualizarBotonGitHub();
+        }, 2000);
+        
+        // También actualizar cuando cambia el usuario
+        setTimeout(() => {
+            actualizarBotonGitHub();
+        }, 1000);
         
     </script>
 
