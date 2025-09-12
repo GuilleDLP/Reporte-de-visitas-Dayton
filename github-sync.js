@@ -95,8 +95,12 @@ class GitHubSync {
         console.log('🔄 Sincronizando usuarios con GitHub...');
         
         try {
-            // Obtener usuarios locales
-            const usuariosLocales = await db.usuarios.toArray();
+            // Obtener usuarios locales del sistema de autenticación
+            if (!window.sistemaAuth) {
+                throw new Error('Sistema de autenticación no disponible');
+            }
+            const usuariosObj = window.sistemaAuth.obtenerUsuarios() || {};
+            const usuariosLocales = Object.values(usuariosObj);
             console.log(`📊 Usuarios locales: ${usuariosLocales.length}`);
 
             // Obtener usuarios de GitHub
@@ -123,11 +127,12 @@ class GitHubSync {
             // Convertir mapa a array
             const usuariosMerged = Array.from(usuariosMap.values());
 
-            // Actualizar base de datos local
-            await db.transaction('rw', db.usuarios, async () => {
-                await db.usuarios.clear();
-                await db.usuarios.bulkAdd(usuariosMerged);
+            // Actualizar usuarios locales en el sistema de autenticación
+            const usuariosObj = {};
+            usuariosMerged.forEach(usuario => {
+                usuariosObj[usuario.id] = usuario;
             });
+            localStorage.setItem('usuarios', JSON.stringify(usuariosObj));
 
             // Actualizar GitHub
             await this.escribirArchivo(
@@ -151,8 +156,15 @@ class GitHubSync {
         console.log('🔄 Sincronizando reportes con GitHub...');
         
         try {
-            // Obtener reportes locales
-            const reportesLocales = await db.reportes.toArray();
+            // Obtener reportes locales usando reportesDB si está disponible
+            let reportesLocales = [];
+            if (window.reportesDB && typeof window.reportesDB.obtenerTodosLosReportes === 'function') {
+                reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
+            } else {
+                // Fallback a localStorage
+                const reportesGuardados = localStorage.getItem('reportes') || '[]';
+                reportesLocales = JSON.parse(reportesGuardados);
+            }
             console.log(`📊 Reportes locales: ${reportesLocales.length}`);
 
             // Obtener reportes de GitHub
@@ -179,11 +191,21 @@ class GitHubSync {
             // Convertir mapa a array
             const reportesMerged = Array.from(reportesMap.values());
 
-            // Actualizar base de datos local
-            await db.transaction('rw', db.reportes, async () => {
-                await db.reportes.clear();
-                await db.reportes.bulkAdd(reportesMerged);
+            // Marcar todos como sincronizados con GitHub
+            reportesMerged.forEach(reporte => {
+                reporte.sincronizadoGitHub = true;
             });
+
+            // Actualizar base de datos local
+            if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
+                // Usar reportesDB si está disponible
+                for (const reporte of reportesMerged) {
+                    await window.reportesDB.guardarReporte(reporte);
+                }
+            } else {
+                // Fallback a localStorage
+                localStorage.setItem('reportes', JSON.stringify(reportesMerged));
+            }
 
             // Actualizar GitHub
             await this.escribirArchivo(
