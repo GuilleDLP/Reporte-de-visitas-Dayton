@@ -491,22 +491,22 @@ class PanelAdministrador {
             this.mostrarUsuarios();
         }
         
-        // Cargar reportes de Firebase
-        if (sincronizador && sincronizador.db) {
-            try {
-                const reportesRemotos = await sincronizador.obtenerTodosLosReportes();
-                this.reportes = reportesRemotos;
-                this.mostrarReportes();
-                this.mostrarEstadisticas();
-            } catch (error) {
-                console.error('Error cargando reportes:', error);
+        // Cargar reportes locales
+        try {
+            if (window.reportesDB) {
+                const reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
+                this.reportes = reportesLocales;
+            } else {
+                // Fallback a localStorage
+                const reportesGuardados = localStorage.getItem('reportes') || '[]';
+                this.reportes = JSON.parse(reportesGuardados);
             }
+            this.mostrarReportes();
+            this.mostrarEstadisticas();
+        } catch (error) {
+            console.error('Error cargando reportes:', error);
+            this.reportes = [];
         }
-        
-        // También cargar reportes locales
-        const reportesLocales = await reportesDB.obtenerTodosLosReportes();
-        this.reportes = [...this.reportes, ...reportesLocales];
-        this.mostrarReportes();
         this.mostrarEstadisticas();
     }
 
