@@ -1,13 +1,13 @@
 
-const CACHE_NAME = "reporte-visitas-cache-v4";
+const CACHE_NAME = "reporte-visitas-cache-v5";
 const urlsToCache = [
   "./",
   "./index.html",
   "./manifest.json",
   "./auth.js",
   "./admin-panel.js",
-  "./firebase-sync.js",
-  "./firebase-users.js",
+  "./github-config.js",
+  "./github-sync.js",
   "./icono-192.png",
   "./icono-512.png"
 ];
