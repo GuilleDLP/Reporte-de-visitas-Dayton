@@ -92,7 +92,8 @@ class GestorUsuariosFirebase {
     async obtenerUsuarios() {
         if (!this.inicializado) {
             // Si no está inicializado, devolver usuarios locales
-            return sistemaAuth.obtenerUsuarios();
+            const usuariosLocales = sistemaAuth.obtenerUsuarios();
+            return usuariosLocales || {};
         }
 
         try {
@@ -103,24 +104,44 @@ class GestorUsuariosFirebase {
             const snapshot = await getDocs(usuariosRef);
             
             const usuarios = {};
+            
+            if (snapshot.empty) {
+                console.log('📦 Firebase está vacío, usando usuarios locales');
+                // Si Firebase está vacío, devolver usuarios locales
+                const usuariosLocales = sistemaAuth.obtenerUsuarios();
+                return usuariosLocales || {};
+            }
+            
             snapshot.forEach((doc) => {
                 const datos = doc.data();
-                usuarios[doc.id] = {
-                    ...datos,
-                    password: this.unhashPassword(datos.password)
-                };
+                if (datos && doc.id) {
+                    usuarios[doc.id] = {
+                        ...datos,
+                        password: datos.password ? this.unhashPassword(datos.password) : ''
+                    };
+                }
             });
             
-            // Actualizar cache local
-            this.usuariosCache = usuarios;
-            localStorage.setItem('udp_usuarios', JSON.stringify(usuarios));
+            // Actualizar cache local solo si tenemos datos válidos
+            if (Object.keys(usuarios).length > 0) {
+                this.usuariosCache = usuarios;
+                localStorage.setItem('udp_usuarios', JSON.stringify(usuarios));
+            }
             
             return usuarios;
             
         } catch (error) {
             console.error('❌ Error obteniendo usuarios de Firebase:', error);
-            // Fallback a usuarios locales
-            return this.usuariosCache;
+            
+            // Fallback a cache local primero
+            if (this.usuariosCache && Object.keys(this.usuariosCache).length > 0) {
+                console.log('📱 Usando cache de usuarios');
+                return this.usuariosCache;
+            }
+            
+            // Fallback final a usuarios locales
+            const usuariosLocales = sistemaAuth.obtenerUsuarios();
+            return usuariosLocales || {};
         }
     }
 
@@ -297,11 +318,28 @@ class GestorUsuariosFirebase {
         
         try {
             const usuarios = await this.obtenerUsuarios();
+            
+            // Verificar que usuarios no sea null o undefined
+            if (!usuarios || typeof usuarios !== 'object') {
+                console.warn('⚠️ No se obtuvieron usuarios válidos, usando usuarios locales como fallback');
+                const usuariosLocales = sistemaAuth.obtenerUsuarios();
+                return usuariosLocales || {};
+            }
+            
             console.log(`✅ ${Object.keys(usuarios).length} usuarios sincronizados`);
             return usuarios;
         } catch (error) {
             console.error('❌ Error sincronizando usuarios:', error);
-            throw error;
+            
+            // Fallback a usuarios locales en caso de error
+            try {
+                const usuariosLocales = sistemaAuth.obtenerUsuarios();
+                console.log('📱 Usando usuarios locales como fallback');
+                return usuariosLocales || {};
+            } catch (fallbackError) {
+                console.error('❌ Error obteniendo usuarios locales:', fallbackError);
+                return {};
+            }
         } finally {
             this.sincronizando = false;
         }
