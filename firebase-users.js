@@ -117,12 +117,14 @@ class GestorUsuariosFirebase {
     }
 
     async obtenerUsuarios() {
+        // SIEMPRE devolver usuarios locales primero - no interferir con el sistema local
+        const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+        
         if (!this.inicializado) {
-            // Si no está inicializado, devolver usuarios locales
-            const usuariosLocales = sistemaAuth.obtenerUsuarios();
-            return usuariosLocales || {};
+            return usuariosLocales;
         }
 
+        // Solo actualizar cache, no localStorage
         try {
             const { collection, getDocs } = 
                 await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
@@ -130,53 +132,32 @@ class GestorUsuariosFirebase {
             const usuariosRef = collection(this.db, 'usuarios');
             const snapshot = await getDocs(usuariosRef);
             
-            const usuarios = {};
-            
             if (snapshot.empty) {
-                console.log('📦 Firebase está vacío, usando usuarios locales');
-                // Si Firebase está vacío, devolver usuarios locales
-                const usuariosLocales = sistemaAuth.obtenerUsuarios();
-                return usuariosLocales || {};
+                console.log('📦 Firebase está vacío, manteniendo usuarios locales');
+                return usuariosLocales;
             }
             
+            // Solo actualizar el cache interno, NO el localStorage
+            const usuariosFirebase = {};
             snapshot.forEach((doc) => {
                 const datos = doc.data();
                 if (datos && doc.id) {
-                    usuarios[doc.id] = {
+                    usuariosFirebase[doc.id] = {
                         ...datos,
                         password: datos.password ? this.unhashPassword(datos.password) : ''
                     };
                 }
             });
             
-            // IMPORTANTE: Hacer merge con usuarios locales existentes
-            const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
-            const usuariosCombinados = {
-                ...usuariosLocales,  // Mantener usuarios locales
-                ...usuarios          // Actualizar/agregar desde Firebase
-            };
+            this.usuariosCache = usuariosFirebase;
+            console.log(`📋 Cache actualizado con ${Object.keys(usuariosFirebase).length} usuarios de Firebase`);
             
-            // Actualizar cache y localStorage con el merge
-            if (Object.keys(usuariosCombinados).length > 0) {
-                this.usuariosCache = usuariosCombinados;
-                localStorage.setItem('udp_usuarios', JSON.stringify(usuariosCombinados));
-            }
-            
-            console.log(`📊 Merge completado: ${Object.keys(usuarios).length} de Firebase + ${Object.keys(usuariosLocales).length} locales = ${Object.keys(usuariosCombinados).length} total`);
-            return usuariosCombinados;
+            // IMPORTANTE: Devolver usuarios locales, no Firebase
+            return usuariosLocales;
             
         } catch (error) {
-            console.error('❌ Error obteniendo usuarios de Firebase:', error);
-            
-            // Fallback a cache local primero
-            if (this.usuariosCache && Object.keys(this.usuariosCache).length > 0) {
-                console.log('📱 Usando cache de usuarios');
-                return this.usuariosCache;
-            }
-            
-            // Fallback final a usuarios locales
-            const usuariosLocales = sistemaAuth.obtenerUsuarios();
-            return usuariosLocales || {};
+            console.error('❌ Error consultando Firebase:', error);
+            return usuariosLocales;
         }
     }
 
@@ -383,35 +364,30 @@ class GestorUsuariosFirebase {
         console.log('🔄 Sincronizando usuarios con Firebase...');
         
         try {
-            // Primero, asegurar que todos los usuarios locales están en Firebase
-            console.log('📤 Paso 1: Subiendo usuarios locales a Firebase...');
-            await this.subirTodosLosUsuariosLocales();
+            // SOLO subir usuarios locales a Firebase - no tocar localStorage
+            console.log('📤 Subiendo usuarios locales a Firebase...');
+            const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
             
-            // Luego, obtener la versión combinada
-            console.log('📥 Paso 2: Obteniendo versión final combinada...');
-            const usuarios = await this.obtenerUsuarios();
-            
-            // Verificar que usuarios no sea null o undefined
-            if (!usuarios || typeof usuarios !== 'object') {
-                console.warn('⚠️ No se obtuvieron usuarios válidos, usando usuarios locales como fallback');
-                const usuariosLocales = sistemaAuth.obtenerUsuarios();
-                return usuariosLocales || {};
+            if (Object.keys(usuariosLocales).length === 0) {
+                console.log('⚠️ No hay usuarios locales para sincronizar');
+                return {};
             }
             
-            console.log(`✅ ${Object.keys(usuarios).length} usuarios sincronizados completamente`);
-            return usuarios;
+            await this.subirTodosLosUsuariosLocales();
+            
+            console.log(`✅ ${Object.keys(usuariosLocales).length} usuarios subidos a Firebase exitosamente`);
+            
+            // Devolver los usuarios locales sin modificarlos
+            return usuariosLocales;
+            
         } catch (error) {
             console.error('❌ Error sincronizando usuarios:', error);
             
-            // Fallback a usuarios locales en caso de error
-            try {
-                const usuariosLocales = sistemaAuth.obtenerUsuarios();
-                console.log('📱 Usando usuarios locales como fallback');
-                return usuariosLocales || {};
-            } catch (fallbackError) {
-                console.error('❌ Error obteniendo usuarios locales:', fallbackError);
-                return {};
-            }
+            // Fallback a usuarios locales
+            const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+            console.log('📱 Usando usuarios locales como fallback');
+            return usuariosLocales;
+            
         } finally {
             this.sincronizando = false;
         }
