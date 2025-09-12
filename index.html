@@ -2200,6 +2200,14 @@ University of Dayton Publishing
             statusText.textContent = '🔄 Sincronizando reportes con GitHub...';
             
             try {
+                // Verificar que githubSync esté disponible
+                if (!window.githubSync) {
+                    mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
+                    btnSync.innerHTML = textoOriginal;
+                    btnSync.disabled = false;
+                    return;
+                }
+                
                 // Validar configuración de GitHub
                 if (!validarConfiguracionGitHub(window.githubSync.config)) {
                     mostrarMensaje('⚠️ Por favor configura GitHub primero', 'warning');
@@ -2303,7 +2311,12 @@ University of Dayton Publishing
                     return;
                 }
                 
-                window.githubSync.actualizarConfiguracion(owner, repo, token);
+                if (window.githubSync) {
+                    window.githubSync.actualizarConfiguracion(owner, repo, token);
+                } else {
+                    mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
+                    return;
+                }
                 mostrarMensaje('✅ Configuración guardada', 'success');
                 modal.remove();
             });
@@ -2316,6 +2329,11 @@ University of Dayton Publishing
             
             if (!owner || !repo || !token) {
                 mostrarMensaje('❌ Completa todos los campos primero', 'error');
+                return;
+            }
+            
+            if (!window.githubSync) {
+                mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
                 return;
             }
             
