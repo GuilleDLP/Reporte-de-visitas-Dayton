@@ -831,7 +831,18 @@ async function sincronizarUsuariosFirebase() {
     try {
         const usuarios = await gestorUsuariosFirebase.sincronizarConFirebase();
         
-        alert(`✅ ${Object.keys(usuarios).length} usuarios sincronizados con Firebase exitosamente`);
+        // Verificar que usuarios sea un objeto válido
+        if (!usuarios || typeof usuarios !== 'object') {
+            alert('⚠️ No se pudieron obtener usuarios. Verifica tu conexión a Firebase.');
+            return;
+        }
+        
+        const cantidadUsuarios = Object.keys(usuarios).length;
+        if (cantidadUsuarios === 0) {
+            alert('⚠️ No hay usuarios para sincronizar. Los usuarios base se crearán automáticamente.');
+        } else {
+            alert(`✅ ${cantidadUsuarios} usuarios sincronizados con Firebase exitosamente`);
+        }
         
         // Recargar panel para mostrar usuarios actualizados
         setTimeout(() => {
@@ -840,8 +851,9 @@ async function sincronizarUsuariosFirebase() {
         }, 500);
         
     } catch (error) {
-        alert('❌ Error sincronizando usuarios: ' + error.message);
-        console.error('Error:', error);
+        const errorMsg = error?.message || 'Error desconocido';
+        alert('❌ Error sincronizando usuarios: ' + errorMsg);
+        console.error('Error completo:', error);
     } finally {
         boton.textContent = textoOriginal;
         boton.disabled = false;
