@@ -801,83 +801,97 @@ function filtrarReportesAdmin() {
 }
 
 async function sincronizarUsuariosFirebase() {
-    if (!gestorUsuariosFirebase || !gestorUsuariosFirebase.inicializado) {
-        // Intentar inicializar Firebase para usuarios
-        if (!gestorUsuariosFirebase) {
-            gestorUsuariosFirebase = new GestorUsuariosFirebase();
-        }
-        
-        // Verificar si el sincronizador general está listo
-        if (!window.sincronizador || !window.sincronizador.db) {
-            alert('⚠️ Conectando con Firebase... Por favor, espera un momento e intenta de nuevo.');
-            
-            // Intentar inicializar Firebase
-            try {
-                if (!window.sincronizador) {
-                    window.sincronizador = new SincronizadorFirebase();
-                    window.sincronizador.usuarioActual = window.usuarioActual;
-                    await window.sincronizador.inicializar();
-                }
-                
-                // Inicializar gestor de usuarios
-                await gestorUsuariosFirebase.inicializar();
-                alert('✅ Firebase inicializado. Puedes sincronizar usuarios ahora.');
-                
-            } catch (error) {
-                alert('❌ Error conectando con Firebase: ' + error.message);
-            }
-            return;
-        }
-        
-        // Si Firebase está listo pero el gestor de usuarios no
-        try {
-            await gestorUsuariosFirebase.inicializar();
-        } catch (error) {
-            alert('❌ Error inicializando gestor de usuarios: ' + error.message);
-            return;
-        }
-    }
-    
     const boton = event.target;
     const textoOriginal = boton.textContent;
-    boton.textContent = '⏳ Sincronizando...';
-    boton.disabled = true;
+    
+    console.log('🔄 === INICIO SINCRONIZACIÓN USUARIOS ===');
     
     try {
-        // Obtener usuarios locales directamente
+        boton.textContent = '⏳ Inicializando...';
+        boton.disabled = true;
+        
+        // Paso 1: Verificar usuarios locales
+        console.log('👥 Paso 1: Verificando usuarios locales...');
         const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+        console.log('📊 Usuarios locales encontrados:', Object.keys(usuariosLocales));
         
         if (Object.keys(usuariosLocales).length === 0) {
             alert('⚠️ No hay usuarios locales. Usa "Restaurar Usuarios Base" primero.');
             return;
         }
         
-        // Intentar sincronizar con Firebase
-        const resultado = await gestorUsuariosFirebase.sincronizarConFirebase();
+        // Paso 2: Verificar/inicializar Firebase
+        console.log('🔥 Paso 2: Verificando Firebase...');
+        if (!gestorUsuariosFirebase) {
+            console.log('➕ Creando gestor de usuarios...');
+            gestorUsuariosFirebase = new GestorUsuariosFirebase();
+        }
         
-        // El resultado puede ser los usuarios o vacío si hay error
+        // Verificar si el sincronizador general está listo
+        if (!window.sincronizador || !window.sincronizador.db) {
+            console.log('🚀 Inicializando sincronizador general...');
+            boton.textContent = '⏳ Conectando Firebase...';
+            
+            if (!window.sincronizador) {
+                window.sincronizador = new SincronizadorFirebase();
+                window.sincronizador.usuarioActual = window.usuarioActual;
+            }
+            
+            console.log('🔗 Conectando con Firebase...');
+            await window.sincronizador.inicializar();
+            console.log('✅ Sincronizador general listo');
+        }
+        
+        // Inicializar gestor de usuarios si no está listo
+        if (!gestorUsuariosFirebase.inicializado) {
+            console.log('⚙️ Inicializando gestor de usuarios...');
+            boton.textContent = '⏳ Preparando usuarios...';
+            await gestorUsuariosFirebase.inicializar();
+            console.log('✅ Gestor de usuarios listo');
+        }
+        
+        // Paso 3: Sincronizar con timeout
+        console.log('☁️ Paso 3: Subiendo usuarios a Firebase...');
+        boton.textContent = '⏳ Subiendo usuarios...';
+        
+        // Agregar timeout para evitar que se quede colgado
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout: Sincronización tardó más de 30 segundos')), 30000);
+        });
+        
+        const syncPromise = gestorUsuariosFirebase.sincronizarConFirebase();
+        
+        const resultado = await Promise.race([syncPromise, timeoutPromise]);
+        
+        console.log('✅ Sincronización completada:', resultado);
         const cantidadUsuarios = Object.keys(usuariosLocales).length;
         alert(`✅ ${cantidadUsuarios} usuarios subidos a Firebase exitosamente`);
         
-        // Recargar panel para mostrar usuarios actualizados
+        // Recargar panel
+        console.log('🔄 Recargando panel...');
         setTimeout(() => {
             cerrarPanelAdmin();
             mostrarPanelAdministrador();
         }, 500);
         
     } catch (error) {
-        // Si hay error, solo mostrar advertencia pero no fallar
+        console.error('❌ Error en sincronización:', error);
+        
         const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
         const cantidadUsuarios = Object.keys(usuariosLocales).length;
         
-        if (cantidadUsuarios > 0) {
+        if (error.message?.includes('Timeout')) {
+            alert(`⏱️ Sincronización lenta. Usuarios locales OK (${cantidadUsuarios}). Reintenta si es necesario.`);
+        } else if (cantidadUsuarios > 0) {
             alert(`⚠️ Usuarios locales OK (${cantidadUsuarios}), pero error conectando Firebase: ${error.message || 'Error desconocido'}`);
         } else {
             alert('❌ No hay usuarios locales y error conectando Firebase. Usa "Restaurar Usuarios Base" primero.');
         }
         
         console.error('Error completo:', error);
+        
     } finally {
+        console.log('🏁 === FIN SINCRONIZACIÓN USUARIOS ===');
         boton.textContent = textoOriginal;
         boton.disabled = false;
     }
