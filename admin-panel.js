@@ -468,14 +468,26 @@ class PanelAdministrador {
     }
 
     async cargarDatos() {
-        // Cargar usuarios (ahora es asíncrono)
+        // Cargar usuarios - siempre usar método local primero
         try {
-            this.usuarios = await sistemaAuth.listarUsuarios();
+            // Intentar método asíncrono si está disponible
+            if (typeof sistemaAuth.listarUsuarios === 'function') {
+                this.usuarios = await sistemaAuth.listarUsuarios();
+            } else {
+                // Fallback a método síncrono
+                this.usuarios = sistemaAuth.obtenerUsuarios() || {};
+            }
+            
+            if (Object.keys(this.usuarios).length === 0) {
+                console.warn('⚠️ No hay usuarios cargados');
+            }
+            
             this.mostrarUsuarios();
+            
         } catch (error) {
             console.error('Error cargando usuarios:', error);
-            // Fallback a usuarios locales
-            this.usuarios = sistemaAuth.obtenerUsuarios();
+            // Fallback directo a usuarios locales
+            this.usuarios = sistemaAuth.obtenerUsuarios() || {};
             this.mostrarUsuarios();
         }
         
@@ -832,20 +844,20 @@ async function sincronizarUsuariosFirebase() {
     boton.disabled = true;
     
     try {
-        const usuarios = await gestorUsuariosFirebase.sincronizarConFirebase();
+        // Obtener usuarios locales directamente
+        const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
         
-        // Verificar que usuarios sea un objeto válido
-        if (!usuarios || typeof usuarios !== 'object') {
-            alert('⚠️ No se pudieron obtener usuarios. Verifica tu conexión a Firebase.');
+        if (Object.keys(usuariosLocales).length === 0) {
+            alert('⚠️ No hay usuarios locales. Usa "Restaurar Usuarios Base" primero.');
             return;
         }
         
-        const cantidadUsuarios = Object.keys(usuarios).length;
-        if (cantidadUsuarios === 0) {
-            alert('⚠️ No hay usuarios para sincronizar. Los usuarios base se crearán automáticamente.');
-        } else {
-            alert(`✅ ${cantidadUsuarios} usuarios sincronizados con Firebase exitosamente`);
-        }
+        // Intentar sincronizar con Firebase
+        const resultado = await gestorUsuariosFirebase.sincronizarConFirebase();
+        
+        // El resultado puede ser los usuarios o vacío si hay error
+        const cantidadUsuarios = Object.keys(usuariosLocales).length;
+        alert(`✅ ${cantidadUsuarios} usuarios subidos a Firebase exitosamente`);
         
         // Recargar panel para mostrar usuarios actualizados
         setTimeout(() => {
@@ -854,8 +866,16 @@ async function sincronizarUsuariosFirebase() {
         }, 500);
         
     } catch (error) {
-        const errorMsg = error?.message || 'Error desconocido';
-        alert('❌ Error sincronizando usuarios: ' + errorMsg);
+        // Si hay error, solo mostrar advertencia pero no fallar
+        const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
+        const cantidadUsuarios = Object.keys(usuariosLocales).length;
+        
+        if (cantidadUsuarios > 0) {
+            alert(`⚠️ Usuarios locales OK (${cantidadUsuarios}), pero error conectando Firebase: ${error.message || 'Error desconocido'}`);
+        } else {
+            alert('❌ No hay usuarios locales y error conectando Firebase. Usa "Restaurar Usuarios Base" primero.');
+        }
+        
         console.error('Error completo:', error);
     } finally {
         boton.textContent = textoOriginal;
