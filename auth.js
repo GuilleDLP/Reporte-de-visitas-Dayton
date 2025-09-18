@@ -210,6 +210,7 @@ class SistemaAutenticacion {
         if (cambios.email) usuario.email = cambios.email;
         if (cambios.password) usuario.password = cambios.password;
         if (cambios.activo !== undefined) usuario.activo = cambios.activo;
+        if (cambios.rol) usuario.rol = cambios.rol;
         
         usuario.fechaModificacion = new Date().toISOString();
         usuario.modificadoPor = this.usuarioActual.id;
