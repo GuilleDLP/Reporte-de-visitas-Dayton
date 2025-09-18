@@ -99,7 +99,17 @@ class PanelAdministrador {
                     <!-- TAB REPORTES -->
                     <div id="tab-reportes" class="tab-content">
                         <div class="admin-section">
-                            <h3>Reportes de Todos los Usuarios</h3>
+                            <div class="section-header">
+                                <h3>Reportes de Todos los Usuarios</h3>
+                                <div>
+                                    <button class="btn-admin btn-info" onclick="sincronizarReportesAdminGitHub()">
+                                        📤 Backup Reportes a GitHub
+                                    </button>
+                                    <button class="btn-admin btn-warning" onclick="restaurarReportesAdminGitHub()">
+                                        📥 Restaurar Reportes desde GitHub
+                                    </button>
+                                </div>
+                            </div>
                             <div class="filtros-admin">
                                 <div class="form-row">
                                     <div>
@@ -494,7 +504,7 @@ class PanelAdministrador {
             this.mostrarUsuarios();
         }
         
-        // Cargar reportes locales
+        // Cargar reportes locales (agregando soporte para archivos por usuario)
         try {
             if (window.reportesDB) {
                 const reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
@@ -504,6 +514,28 @@ class PanelAdministrador {
                 const reportesGuardados = localStorage.getItem('reportes') || '[]';
                 this.reportes = JSON.parse(reportesGuardados);
             }
+            
+            // Si somos admin y hay GitHub sync disponible, intentar cargar reportes de todos los usuarios
+            const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
+            if (usuarioActual && usuarioActual.rol === 'administrador' && window.githubSync) {
+                console.log('👑 Admin detectado: Intentando cargar reportes de todos los usuarios desde GitHub...');
+                try {
+                    const resultadoDescarga = await window.githubSync.descargarReportesDeTodosLosUsuarios();
+                    if (resultadoDescarga.exito && resultadoDescarga.totalReportes > 0) {
+                        console.log(`✅ Admin: ${resultadoDescarga.totalReportes} reportes cargados desde GitHub`);
+                        // Recargar reportes después de la descarga
+                        if (window.reportesDB) {
+                            this.reportes = await window.reportesDB.obtenerTodosLosReportes();
+                        } else {
+                            const reportesActualizados = localStorage.getItem('reportes') || '[]';
+                            this.reportes = JSON.parse(reportesActualizados);
+                        }
+                    }
+                } catch (errorGitHub) {
+                    console.log('⚠️ No se pudieron cargar reportes adicionales desde GitHub:', errorGitHub.message);
+                }
+            }
+            
             this.mostrarReportes();
             this.mostrarEstadisticas();
         } catch (error) {
@@ -1175,6 +1207,146 @@ function toggleUsuario(userId) {
 function filtrarReportesAdmin() {
     if (window.panelAdmin) {
         window.panelAdmin.filtrarReportesAdmin();
+    }
+}
+
+async function sincronizarReportesAdminGitHub() {
+    const boton = event.target;
+    const textoOriginal = boton.textContent;
+    
+    console.log('📤 === INICIO BACKUP REPORTES ADMIN A GITHUB ===');
+    
+    try {
+        boton.textContent = '⏳ Iniciando...';
+        boton.disabled = true;
+        
+        // Verificar que es admin
+        const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
+        if (!usuarioActual || usuarioActual.rol !== 'administrador') {
+            alert('❌ Solo los administradores pueden hacer backup de reportes');
+            return;
+        }
+        
+        // Verificar que githubSync esté disponible
+        if (!window.githubSync) {
+            alert('❌ Sistema de GitHub no disponible. Recarga la página y asegúrate de tener configuración válida.');
+            return;
+        }
+        
+        // Verificar configuración de GitHub
+        if (!validarConfiguracionGitHub(window.githubSync.config)) {
+            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
+            return;
+        }
+        
+        // Obtener todos los usuarios para hacer backup de sus reportes
+        const usuarios = window.sistemaAuth.obtenerUsuarios() || {};
+        const listaUsuarios = Object.keys(usuarios);
+        
+        if (listaUsuarios.length === 0) {
+            alert('⚠️ No hay usuarios para hacer backup de reportes');
+            return;
+        }
+        
+        boton.textContent = '📤 Subiendo reportes...';
+        console.log(`🌐 Haciendo backup de reportes de ${listaUsuarios.length} usuarios...`);
+        
+        let totalExitosos = 0;
+        let totalReportes = 0;
+        
+        // Hacer backup de cada usuario por separado
+        for (const userId of listaUsuarios) {
+            try {
+                console.log(`👤 Backup reportes de ${userId}...`);
+                const resultado = await window.githubSync.sincronizarReportes(userId);
+                if (resultado.exito) {
+                    totalExitosos++;
+                    totalReportes += resultado.cantidad;
+                    console.log(`✅ ${resultado.cantidad} reportes de ${userId} subidos`);
+                }
+            } catch (error) {
+                console.log(`⚠️ Error con reportes de ${userId}:`, error.message);
+            }
+        }
+        
+        console.log('✅ Backup completo:', { usuariosExitosos: totalExitosos, totalReportes });
+        alert(`✅ Backup completado: ${totalReportes} reportes de ${totalExitosos} usuarios subidos a GitHub`);
+        
+    } catch (error) {
+        console.error('❌ Error en backup de reportes:', error);
+        alert(`❌ Error en backup de reportes: ${error.message}`);
+        
+    } finally {
+        console.log('🏁 === FIN BACKUP REPORTES ADMIN ===');
+        boton.textContent = textoOriginal;
+        boton.disabled = false;
+    }
+}
+
+async function restaurarReportesAdminGitHub() {
+    if (!confirm('⚠️ ¿Estás seguro de que quieres RESTAURAR reportes desde GitHub?\n\nEsto SOBRESCRIBIRÁ todos los reportes locales con los datos de GitHub.')) {
+        return;
+    }
+
+    const boton = event.target;
+    const textoOriginal = boton.textContent;
+    
+    console.log('📥 === INICIO RESTORE REPORTES ADMIN DESDE GITHUB ===');
+    
+    try {
+        boton.textContent = '⏳ Descargando...';
+        boton.disabled = true;
+        
+        // Verificar que es admin
+        const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
+        if (!usuarioActual || usuarioActual.rol !== 'administrador') {
+            alert('❌ Solo los administradores pueden restaurar reportes');
+            return;
+        }
+        
+        // Verificar que githubSync esté disponible
+        if (!window.githubSync) {
+            alert('❌ Sistema de GitHub no disponible. Recarga la página.');
+            return;
+        }
+        
+        // Verificar configuración de GitHub
+        if (!validarConfiguracionGitHub(window.githubSync.config)) {
+            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
+            return;
+        }
+        
+        // Restaurar reportes de todos los usuarios desde GitHub
+        boton.textContent = '📥 Descargando desde GitHub...';
+        console.log('🌐 Restaurando reportes de todos los usuarios desde GitHub...');
+        
+        const resultado = await window.githubSync.descargarReportesDeTodosLosUsuarios();
+        
+        if (resultado.exito) {
+            console.log('✅ Restore exitoso:', resultado);
+            alert(`✅ Restore completado: ${resultado.totalReportes} reportes de ${resultado.usuariosProcesados} usuarios descargados desde GitHub`);
+            
+            // Recargar panel para mostrar reportes restaurados
+            if (window.panelAdmin) {
+                await window.panelAdmin.cargarDatos();
+            } else {
+                setTimeout(() => {
+                    cerrarPanelAdmin();
+                    mostrarPanelAdministrador();
+                }, 1000);
+            }
+        } else {
+            throw new Error(resultado.error || 'Error desconocido');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en restore de reportes:', error);
+        alert(`❌ Error restaurando reportes desde GitHub: ${error.message}`);
+        
+    } finally {
+        console.log('🏁 === FIN RESTORE REPORTES ADMIN ===');
+        boton.textContent = textoOriginal;
+        boton.disabled = false;
     }
 }
 
