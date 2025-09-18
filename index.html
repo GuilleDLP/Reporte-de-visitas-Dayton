@@ -30,6 +30,9 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            /* Prevenir pull-to-refresh en móviles */
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
         }
         
         .container {
@@ -1197,8 +1200,41 @@
             ]
         };
 
+        // ====================== PREVENCIÓN PULL-TO-REFRESH ======================
+
+        // Prevenir pull-to-refresh accidental en móviles
+        let startY = 0;
+        let isRefreshPrevented = false;
+
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].pageY;
+            isRefreshPrevented = false;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', function(e) {
+            const currentY = e.touches[0].pageY;
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+
+            // Si estamos en el tope de la página y el usuario desliza hacia abajo
+            if (scrollTop === 0 && currentY > startY && !isRefreshPrevented) {
+                // Solo prevenir si el movimiento es significativo (más de 50px)
+                if (currentY - startY > 50) {
+                    e.preventDefault();
+                    isRefreshPrevented = true;
+                    console.log('🚫 Pull-to-refresh prevenido');
+
+                    // Mostrar mensaje temporal
+                    mostrarMensaje('⚠️ Desliza menos para evitar refrescar accidentalmente', 'warning');
+                    setTimeout(() => {
+                        const messageDiv = document.getElementById('messages');
+                        if (messageDiv) messageDiv.innerHTML = '';
+                    }, 2000);
+                }
+            }
+        }, { passive: false });
+
         // ====================== FUNCIONES DE INICIALIZACIÓN ======================
-        
+
         // Inicializar reportesDB globalmente
         window.reportesDB = reportesDB;
 
