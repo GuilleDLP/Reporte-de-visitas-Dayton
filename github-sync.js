@@ -100,9 +100,18 @@ class GitHubSync {
             if (!sistemaAuth) {
                 throw new Error('Sistema de autenticación no disponible');
             }
+            
+            console.log('🔍 DEBUG: Obteniendo usuarios del sistema de autenticación...');
             const usuariosObj = sistemaAuth.obtenerUsuarios() || {};
+            console.log('🔍 DEBUG: Usuarios obtenidos:', usuariosObj);
+            
+            // También verificar directamente en localStorage
+            const usuariosDirectoLS = localStorage.getItem('udp_usuarios');
+            console.log('🔍 DEBUG: Usuarios directo de localStorage:', usuariosDirectoLS);
+            
             const usuariosLocales = Object.values(usuariosObj);
             console.log(`📊 Usuarios locales para subir: ${usuariosLocales.length}`);
+            console.log('🔍 DEBUG: Lista de usuarios a subir:', usuariosLocales.map(u => `${u.id}: ${u.nombre} (modificado: ${u.fechaModificacion})`));
 
             if (usuariosLocales.length === 0) {
                 throw new Error('No hay usuarios locales para sincronizar');
