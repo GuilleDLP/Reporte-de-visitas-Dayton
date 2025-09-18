@@ -424,19 +424,54 @@
             body {
                 padding: 10px;
             }
-            
+
             .form-container {
                 padding: 20px;
             }
-            
+
             .header {
-                padding: 20px;
+                padding: 15px;
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
             }
-            
+
+            .header-left,
+            .header-right {
+                text-align: center;
+            }
+
             .header h1 {
-                font-size: 24px;
+                font-size: 22px;
+                margin-bottom: 5px;
             }
-            
+
+            .header p {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .user-info {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .user-info span {
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+
+            .btn-logout,
+            .btn-admin-header,
+            .btn-small {
+                width: 100%;
+                max-width: 200px;
+                margin: 0 auto;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
             button {
                 padding: 12px 20px;
                 font-size: 16px;
@@ -1168,7 +1203,9 @@
         window.reportesDB = reportesDB;
 
         
-        window.onload = async function() {
+        // La inicialización ahora se maneja desde auth.js después del login exitoso
+        // Esta función se llama solo cuando el usuario está autenticado
+        async function inicializarSistema() {
             try {
                 mostrarMensaje('⏳ Inicializando sistema...', 'warning');
                 await reportesDB.init();
@@ -1181,7 +1218,7 @@
                 console.error('Error al inicializar:', error);
                 mostrarMensaje('❌ Error al inicializar el sistema. Recarga la página.', 'error');
             }
-        };
+        }
 
         // ====================== FUNCIONES DE INTERFAZ ======================
         function actualizarZonas() {
@@ -2124,18 +2161,23 @@ University of Dayton Publishing
                 }
             }
             
-            // Actualizar estado de sincronización al iniciar
+            // Inicializar el sistema completo después del login
             setTimeout(async () => {
-                if (typeof cargarBorradores === 'function') {
-                    await cargarBorradores();
-                }
+                await inicializarSistema();
                 await actualizarEstadoSincronizacion();
-            }, 1000);
+            }, 500);
         }
         
         function cerrarSesion() {
             if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
                 if (sistemaAuth) {
+                    // Cerrar panel admin si está abierto
+                    const adminOverlay = document.getElementById('adminOverlay');
+                    if (adminOverlay) {
+                        adminOverlay.remove();
+                    }
+
+                    // Logout usando el sistema de autenticación
                     sistemaAuth.logout();
                 }
             }
