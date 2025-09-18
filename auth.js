@@ -565,9 +565,17 @@ function togglePasswordVisibility() {
 let sistemaAuth = null;
 let interfazLogin = null;
 
+// Referencias globales para compatibilidad
+window.sistemaAuth = null;
+window.sistemaAutenticacion = null;
+
 // Inicialización del sistema de autenticación
 document.addEventListener('DOMContentLoaded', () => {
     sistemaAuth = new SistemaAutenticacion();
+    
+    // Establecer referencias globales
+    window.sistemaAuth = sistemaAuth;
+    window.sistemaAutenticacion = sistemaAuth;
     
     // Verificar si hay una sesión activa
     const sesionActual = sistemaAuth.obtenerSesionActual();
