@@ -15,7 +15,7 @@
     <!-- Configuración de GitHub -->
     <script src="./github-config.js" defer></script>
     <!-- Sistema de sincronización GitHub -->
-    <script src="./github-sync.js"></script>
+    <script src="./github-sync.js" defer></script>
     <style>
         * {
             margin: 0;
@@ -2605,13 +2605,39 @@ University of Dayton Publishing
             }
         }
 
-        // Inicializar githubSync
-        if (typeof cargarConfiguracionGitHub === 'function') {
-            window.githubSync = new GitHubSync();
-            console.log('✅ GitHubSync inicializado correctamente');
-        } else {
-            console.warn('⚠️ Funciones de configuración no disponibles aún');
+        // Función para inicializar githubSync de forma robusta
+        function inicializarGitHubSyncGlobal() {
+            try {
+                if (!window.githubSync && typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ GitHubSync inicializado correctamente en HTML');
+                    return true;
+                } else if (window.githubSync) {
+                    console.log('✅ GitHubSync ya está inicializado');
+                    return true;
+                } else {
+                    console.warn('⚠️ Dependencias de GitHubSync no disponibles');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error inicializando GitHubSync:', error);
+                return false;
+            }
         }
+        
+        // Intentar inicializar inmediatamente
+        if (!inicializarGitHubSyncGlobal()) {
+            // Si falla, intentar de nuevo en el próximo tick
+            setTimeout(inicializarGitHubSyncGlobal, 100);
+        }
+        
+        // Función global para forzar inicialización cuando sea necesario
+        window.asegurarGitHubSync = function() {
+            if (!window.githubSync) {
+                return inicializarGitHubSyncGlobal();
+            }
+            return true;
+        };
         
     </script>
 
