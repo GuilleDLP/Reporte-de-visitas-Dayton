@@ -1167,58 +1167,6 @@
         // Inicializar reportesDB globalmente
         window.reportesDB = reportesDB;
 
-        // Función global para debugging usuarios (disponible inmediatamente)
-        window.debugUsuarios = function() {
-            console.log('🔍 === DEBUG COMPLETO DE USUARIOS ===');
-            
-            // Verificar localStorage directo
-            const lsDirecto = localStorage.getItem('udp_usuarios');
-            console.log('🔍 localStorage directo (crudo):', lsDirecto);
-            
-            if (lsDirecto) {
-                try {
-                    const usuariosLS = JSON.parse(lsDirecto);
-                    console.log('🔍 Usuarios en localStorage:', Object.keys(usuariosLS));
-                    Object.values(usuariosLS).forEach(usuario => {
-                        console.log(`🔍 ${usuario.id}: ${usuario.nombre} (modificado: ${usuario.fechaModificacion || 'nunca'}, pendiente: ${usuario.pendienteSincronizacion || false})`);
-                    });
-                } catch (e) {
-                    console.error('🔍 Error parseando localStorage:', e);
-                }
-            } else {
-                console.log('🔍 No hay datos en localStorage udp_usuarios');
-            }
-            
-            // Verificar a través del sistema de autenticación
-            if (window.sistemaAuth) {
-                try {
-                    const usuariosSistema = window.sistemaAuth.obtenerUsuarios();
-                    console.log('🔍 Usuarios via sistemaAuth:', Object.keys(usuariosSistema));
-                    Object.values(usuariosSistema).forEach(usuario => {
-                        console.log(`🔍 SISTEMA ${usuario.id}: ${usuario.nombre} (modificado: ${usuario.fechaModificacion || 'nunca'}, pendiente: ${usuario.pendienteSincronizacion || false})`);
-                    });
-                } catch (e) {
-                    console.error('🔍 Error obteniendo usuarios del sistema:', e);
-                }
-            } else {
-                console.log('🔍 sistemaAuth no está disponible');
-            }
-        };
-
-        console.log('🔍 Función debugUsuarios() lista para usar');
-
-        // Función rápida para verificar localStorage
-        window.verLS = function() {
-            const data = localStorage.getItem('udp_usuarios');
-            if (data) {
-                const users = JSON.parse(data);
-                console.log('📋 Usuarios en localStorage:', Object.keys(users).map(k => `${k}: ${users[k].nombre}`));
-                return users;
-            } else {
-                console.log('❌ No hay datos en udp_usuarios');
-                return null;
-            }
-        };
         
         window.onload = async function() {
             try {
@@ -1485,7 +1433,11 @@ ${reporteActual.huboQuejas ? `
                     huboQuejas: document.getElementById('huboQuejas').checked,
                     categoriaQueja: document.getElementById('categoriaQueja').value,
                     detalleQuejaTexto: document.getElementById('detalleQuejaTexto').value,
-                    fechaGuardado: new Date().toISOString()
+                    fechaGuardado: new Date().toISOString(),
+                    usuario: window.usuarioActual?.id || 'anonimo',
+                    usuarioId: window.usuarioActual?.id || 'anonimo',
+                    creadoPor: window.usuarioActual?.nombre || 'Usuario desconocido',
+                    autorRol: window.usuarioActual?.rol || 'usuario'
                 };
                 
                 await reportesDB.guardarReporte(reporte);
