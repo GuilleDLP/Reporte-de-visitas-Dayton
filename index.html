@@ -1163,6 +1163,10 @@
         };
 
         // ====================== FUNCIONES DE INICIALIZACIÓN ======================
+        
+        // Inicializar reportesDB globalmente
+        window.reportesDB = reportesDB;
+        
         window.onload = async function() {
             try {
                 mostrarMensaje('⏳ Inicializando sistema...', 'warning');
@@ -2132,6 +2136,16 @@ University of Dayton Publishing
             }
         }
         
+        // Función para mostrar panel de administrador
+        function mostrarPanelAdministrador() {
+            if (typeof PanelAdministrador !== 'undefined') {
+                window.panelAdmin = new PanelAdministrador();
+                window.panelAdmin.mostrar();
+            } else {
+                alert('❌ Panel de administrador no disponible. Recarga la página.');
+            }
+        }
+        
         // Función global para mostrar panel de administrador
         window.mostrarPanelAdministrador = mostrarPanelAdministrador;
         
@@ -2499,7 +2513,7 @@ University of Dayton Publishing
                     const usuariosMerged = Array.from(usuariosMap.values());
                     const usuariosObj2 = {};
                     usuariosMerged.forEach(usuario => usuariosObj2[usuario.id] = usuario);
-                    localStorage.setItem('usuarios', JSON.stringify(usuariosObj2));
+                    localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj2));
 
                     await this.escribirArchivo(
                         this.config.paths.usuarios,
