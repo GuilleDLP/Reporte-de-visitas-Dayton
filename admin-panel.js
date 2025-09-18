@@ -39,7 +39,10 @@ class PanelAdministrador {
                                 <h3>Gestión de Usuarios</h3>
                                 <div>
                                     <button class="btn-admin btn-info" onclick="sincronizarUsuariosGitHub()">
-                                        🔄 Sincronizar con GitHub
+                                        📤 Backup a GitHub
+                                    </button>
+                                    <button class="btn-admin btn-warning" onclick="restaurarUsuariosGitHub()">
+                                        📥 Restore desde GitHub
                                     </button>
                                     <button class="btn-admin btn-warning" onclick="restaurarUsuariosBase()">
                                         🔧 Restaurar Usuarios Base
@@ -804,7 +807,7 @@ async function sincronizarUsuariosGitHub() {
     const boton = event.target;
     const textoOriginal = boton.textContent;
     
-    console.log('🔄 === INICIO SINCRONIZACIÓN USUARIOS CON GITHUB ===');
+    console.log('📤 === INICIO BACKUP USUARIOS A GITHUB ===');
     
     try {
         boton.textContent = '⏳ Iniciando...';
@@ -844,15 +847,15 @@ async function sincronizarUsuariosGitHub() {
             return;
         }
         
-        // Sincronizar con GitHub
-        boton.textContent = '🔄 Sincronizando con GitHub...';
-        console.log('🌐 Sincronizando usuarios con GitHub...');
+        // Hacer backup a GitHub
+        boton.textContent = '📤 Subiendo a GitHub...';
+        console.log('🌐 Haciendo backup de usuarios a GitHub...');
         
         const resultado = await window.githubSync.sincronizarUsuarios();
         
         if (resultado.exito) {
-            console.log('✅ Sincronización exitosa:', resultado);
-            alert(`✅ Sincronización completada: ${resultado.cantidad} usuarios sincronizados`);
+            console.log('✅ Backup exitoso:', resultado);
+            alert(`✅ Backup completado: ${resultado.cantidad} usuarios subidos a GitHub`);
             if (window.panelAdmin) {
                 window.panelAdmin.cargarUsuarios();
             }
@@ -865,7 +868,67 @@ async function sincronizarUsuariosGitHub() {
         alert(`❌ Error sincronizando con GitHub: ${error.message}`);
         
     } finally {
-        console.log('🏁 === FIN SINCRONIZACIÓN USUARIOS ===');
+        console.log('🏁 === FIN BACKUP USUARIOS ===');
+        boton.textContent = textoOriginal;
+        boton.disabled = false;
+    }
+}
+
+async function restaurarUsuariosGitHub() {
+    if (!confirm('⚠️ ¿Estás seguro de que quieres RESTAURAR usuarios desde GitHub?\n\nEsto SOBRESCRIBIRÁ todos los usuarios locales con los datos de GitHub.')) {
+        return;
+    }
+
+    const boton = event.target;
+    const textoOriginal = boton.textContent;
+    
+    console.log('📥 === INICIO RESTORE USUARIOS DESDE GITHUB ===');
+    
+    try {
+        boton.textContent = '⏳ Descargando...';
+        boton.disabled = true;
+        
+        // Verificar que githubSync esté disponible
+        if (!window.githubSync) {
+            console.log('🔧 Intentando inicializar githubSync...');
+            if (window.asegurarGitHubSync && window.asegurarGitHubSync()) {
+                console.log('✅ githubSync inicializado exitosamente');
+            } else {
+                alert('❌ Sistema de GitHub no disponible. Recarga la página.');
+                return;
+            }
+        }
+        
+        // Verificar configuración de GitHub
+        if (!validarConfiguracionGitHub(window.githubSync.config)) {
+            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
+            return;
+        }
+        
+        // Restaurar usuarios desde GitHub
+        boton.textContent = '📥 Descargando desde GitHub...';
+        console.log('🌐 Restaurando usuarios desde GitHub...');
+        
+        const resultado = await window.githubSync.descargarUsuarios();
+        
+        if (resultado.exito) {
+            console.log('✅ Restore exitoso:', resultado);
+            alert(`✅ Restore completado: ${resultado.cantidad} usuarios descargados desde GitHub`);
+            
+            // Recargar panel para mostrar usuarios restaurados
+            setTimeout(() => {
+                window.location.reload(); // Recargar toda la página para reinicializar el sistema
+            }, 1000);
+        } else {
+            throw new Error(resultado.error || 'Error desconocido');
+        }
+        
+    } catch (error) {
+        console.error('❌ Error en restore:', error);
+        alert(`❌ Error restaurando desde GitHub: ${error.message}`);
+        
+    } finally {
+        console.log('🏁 === FIN RESTORE USUARIOS ===');
         boton.textContent = textoOriginal;
         boton.disabled = false;
     }
