@@ -90,9 +90,9 @@ class GitHubSync {
         }
     }
 
-    // Sincronizar usuarios
+    // Sincronizar usuarios (SUBIR datos locales a GitHub como backup)
     async sincronizarUsuarios() {
-        console.log('🔄 Sincronizando usuarios con GitHub...');
+        console.log('🔄 SUBIENDO usuarios locales a GitHub...');
         
         try {
             // Obtener usuarios locales del sistema de autenticación
@@ -102,89 +102,77 @@ class GitHubSync {
             }
             const usuariosObj = sistemaAuth.obtenerUsuarios() || {};
             const usuariosLocales = Object.values(usuariosObj);
-            console.log(`📊 Usuarios locales: ${usuariosLocales.length}`);
+            console.log(`📊 Usuarios locales para subir: ${usuariosLocales.length}`);
 
-            // Obtener usuarios de GitHub
+            if (usuariosLocales.length === 0) {
+                throw new Error('No hay usuarios locales para sincronizar');
+            }
+
+            // Marcar todos los usuarios con timestamp de sincronización
+            const usuariosParaSubir = usuariosLocales.map(usuario => ({
+                ...usuario,
+                ultimaSincronizacion: new Date().toISOString(),
+                sincronizadoDesde: 'local'
+            }));
+
+            // Obtener el SHA actual del archivo en GitHub (si existe)
             const archivoGitHub = await this.leerArchivo(this.config.paths.usuarios);
-            const usuariosGitHub = archivoGitHub ? archivoGitHub.content : [];
-            console.log(`📊 Usuarios en GitHub: ${usuariosGitHub.length}`);
-
-            // Crear mapa de usuarios para merge
-            const usuariosMap = new Map();
-
-            // Agregar usuarios de GitHub
-            usuariosGitHub.forEach(usuario => {
-                usuariosMap.set(usuario.id, usuario);
-            });
-
-            // Agregar/actualizar con usuarios locales (prioridad a cambios locales recientes)
-            usuariosLocales.forEach(usuario => {
-                const existente = usuariosMap.get(usuario.id);
-                
-                // Si el usuario está marcado como pendiente de sincronización, SIEMPRE tiene prioridad
-                if (usuario.pendienteSincronizacion) {
-                    // Limpiar la marca de pendiente y marcar como sincronizado
-                    usuario.pendienteSincronizacion = false;
-                    usuario.ultimaSincronizacion = new Date().toISOString();
-                    usuariosMap.set(usuario.id, usuario);
-                    console.log(`🔄 FORZANDO sincronización de usuario modificado localmente: ${usuario.nombre}`);
-                    return;
-                }
-                
-                // Si no existe en GitHub, agregarlo
-                if (!existente) {
-                    usuariosMap.set(usuario.id, usuario);
-                    console.log(`📝 Agregando usuario nuevo local: ${usuario.nombre}`);
-                    return;
-                }
-                
-                // Si el usuario local tiene fechaModificacion, comparar fechas
-                if (usuario.fechaModificacion) {
-                    const fechaLocal = new Date(usuario.fechaModificacion);
-                    const fechaGitHub = new Date(existente.fechaModificacion || existente.fechaCreacion);
-                    
-                    if (fechaLocal > fechaGitHub) {
-                        usuariosMap.set(usuario.id, usuario);
-                        console.log(`🔄 Actualizando usuario modificado localmente: ${usuario.nombre}`);
-                    } else {
-                        console.log(`📥 Manteniendo versión de GitHub para: ${usuario.nombre}`);
-                    }
-                } else {
-                    // Si el usuario local no tiene fechaModificacion, usar la versión de GitHub
-                    console.log(`📥 Usando versión de GitHub para usuario sin fechaModificacion: ${usuario.nombre}`);
-                }
-            });
-
-            // Convertir mapa a array
-            const usuariosMerged = Array.from(usuariosMap.values());
-
-            // Actualizar usuarios locales en el sistema de autenticación
-            const usuariosObj = {};
-            usuariosMerged.forEach(usuario => {
-                usuariosObj[usuario.id] = usuario;
-            });
-            localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj));
-
-            // Actualizar GitHub
+            
+            // SUBIR usuarios locales a GitHub (SOBRESCRIBIR GitHub con datos locales)
             await this.escribirArchivo(
                 this.config.paths.usuarios,
-                usuariosMerged,
-                `Sincronización de usuarios - ${new Date().toLocaleString()}`,
+                usuariosParaSubir,
+                `📤 Backup de usuarios desde local - ${new Date().toLocaleString()}`,
                 archivoGitHub?.sha
             );
 
-            console.log(`✅ Sincronización completada: ${usuariosMerged.length} usuarios`);
-            return { exito: true, cantidad: usuariosMerged.length };
+            console.log(`✅ BACKUP COMPLETADO: ${usuariosParaSubir.length} usuarios subidos a GitHub`);
+            return { exito: true, cantidad: usuariosParaSubir.length, accion: 'backup' };
 
         } catch (error) {
-            console.error('❌ Error en sincronización de usuarios:', error);
+            console.error('❌ Error haciendo backup de usuarios:', error);
             throw error;
         }
     }
 
-    // Sincronizar reportes
+    // Nueva función para DESCARGAR usuarios desde GitHub (para nuevos equipos)
+    async descargarUsuarios() {
+        console.log('📥 DESCARGANDO usuarios desde GitHub...');
+        
+        try {
+            // Obtener usuarios de GitHub
+            const archivoGitHub = await this.leerArchivo(this.config.paths.usuarios);
+            if (!archivoGitHub || !archivoGitHub.content || archivoGitHub.content.length === 0) {
+                throw new Error('No hay datos de usuarios en GitHub para descargar');
+            }
+
+            const usuariosGitHub = archivoGitHub.content;
+            console.log(`📊 Usuarios encontrados en GitHub: ${usuariosGitHub.length}`);
+
+            // Convertir a formato del sistema de autenticación
+            const usuariosObj = {};
+            usuariosGitHub.forEach(usuario => {
+                // Marcar como descargado desde GitHub
+                usuario.descargadoDesde = 'github';
+                usuario.fechaDescarga = new Date().toISOString();
+                usuariosObj[usuario.id] = usuario;
+            });
+
+            // SOBRESCRIBIR usuarios locales con los de GitHub
+            localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj));
+
+            console.log(`✅ DESCARGA COMPLETADA: ${usuariosGitHub.length} usuarios restaurados desde GitHub`);
+            return { exito: true, cantidad: usuariosGitHub.length, accion: 'restore' };
+
+        } catch (error) {
+            console.error('❌ Error descargando usuarios desde GitHub:', error);
+            throw error;
+        }
+    }
+
+    // Sincronizar reportes (SUBIR datos locales a GitHub como backup)
     async sincronizarReportes() {
-        console.log('🔄 Sincronizando reportes con GitHub...');
+        console.log('🔄 SUBIENDO reportes locales a GitHub...');
         
         try {
             // Obtener reportes locales usando reportesDB si está disponible
@@ -196,73 +184,93 @@ class GitHubSync {
                 const reportesGuardados = localStorage.getItem('reportes') || '[]';
                 reportesLocales = JSON.parse(reportesGuardados);
             }
-            console.log(`📊 Reportes locales: ${reportesLocales.length}`);
+            console.log(`📊 Reportes locales para subir: ${reportesLocales.length}`);
 
-            // Obtener reportes de GitHub
-            const archivoGitHub = await this.leerArchivo(this.config.paths.reportes);
-            const reportesGitHub = archivoGitHub ? archivoGitHub.content : [];
-            console.log(`📊 Reportes en GitHub: ${reportesGitHub.length}`);
-
-            // Crear mapa de reportes para merge
-            const reportesMap = new Map();
-
-            // Agregar reportes de GitHub
-            reportesGitHub.forEach(reporte => {
-                reportesMap.set(reporte.id, reporte);
-            });
-
-            // Agregar/actualizar con reportes locales
-            reportesLocales.forEach(reporte => {
-                const existente = reportesMap.get(reporte.id);
-                if (!existente || new Date(reporte.fechaGuardado) > new Date(existente.fechaGuardado)) {
-                    reportesMap.set(reporte.id, reporte);
-                }
-            });
-
-            // Convertir mapa a array
-            const reportesMerged = Array.from(reportesMap.values());
-
-            // Marcar todos como sincronizados con GitHub
-            reportesMerged.forEach(reporte => {
-                reporte.sincronizadoGitHub = true;
-            });
-
-            // Actualizar base de datos local
-            if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
-                // Usar reportesDB si está disponible
-                for (const reporte of reportesMerged) {
-                    await window.reportesDB.guardarReporte(reporte);
-                }
-            } else {
-                // Fallback a localStorage
-                localStorage.setItem('reportes', JSON.stringify(reportesMerged));
+            if (reportesLocales.length === 0) {
+                console.log('ℹ️ No hay reportes locales para hacer backup');
+                return { exito: true, cantidad: 0, accion: 'backup' };
             }
 
-            // Actualizar GitHub
+            // Marcar todos los reportes con timestamp de sincronización
+            const reportesParaSubir = reportesLocales.map(reporte => ({
+                ...reporte,
+                ultimaSincronizacion: new Date().toISOString(),
+                sincronizadoDesde: 'local',
+                sincronizadoGitHub: true
+            }));
+
+            // Obtener el SHA actual del archivo en GitHub (si existe)
+            const archivoGitHub = await this.leerArchivo(this.config.paths.reportes);
+            
+            // SUBIR reportes locales a GitHub (SOBRESCRIBIR GitHub con datos locales)
             await this.escribirArchivo(
                 this.config.paths.reportes,
-                reportesMerged,
-                `Sincronización de reportes - ${new Date().toLocaleString()}`,
+                reportesParaSubir,
+                `📤 Backup de reportes desde local - ${new Date().toLocaleString()}`,
                 archivoGitHub?.sha
             );
 
-            console.log(`✅ Sincronización completada: ${reportesMerged.length} reportes`);
-            return { exito: true, cantidad: reportesMerged.length };
+            console.log(`✅ BACKUP COMPLETADO: ${reportesParaSubir.length} reportes subidos a GitHub`);
+            return { exito: true, cantidad: reportesParaSubir.length, accion: 'backup' };
 
         } catch (error) {
-            console.error('❌ Error en sincronización de reportes:', error);
+            console.error('❌ Error haciendo backup de reportes:', error);
             throw error;
         }
     }
 
-    // Sincronización completa
+    // Nueva función para DESCARGAR reportes desde GitHub (para nuevos equipos)
+    async descargarReportes() {
+        console.log('📥 DESCARGANDO reportes desde GitHub...');
+        
+        try {
+            // Obtener reportes de GitHub
+            const archivoGitHub = await this.leerArchivo(this.config.paths.reportes);
+            if (!archivoGitHub || !archivoGitHub.content || archivoGitHub.content.length === 0) {
+                console.log('ℹ️ No hay reportes en GitHub para descargar');
+                return { exito: true, cantidad: 0, accion: 'restore' };
+            }
+
+            const reportesGitHub = archivoGitHub.content;
+            console.log(`📊 Reportes encontrados en GitHub: ${reportesGitHub.length}`);
+
+            // Marcar reportes como descargados
+            const reportesParaRestaurar = reportesGitHub.map(reporte => ({
+                ...reporte,
+                descargadoDesde: 'github',
+                fechaDescarga: new Date().toISOString(),
+                sincronizadoGitHub: true
+            }));
+
+            // SOBRESCRIBIR reportes locales con los de GitHub
+            if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
+                // Limpiar base de datos local y agregar reportes de GitHub
+                for (const reporte of reportesParaRestaurar) {
+                    await window.reportesDB.guardarReporte(reporte);
+                }
+            } else {
+                // Fallback a localStorage
+                localStorage.setItem('reportes', JSON.stringify(reportesParaRestaurar));
+            }
+
+            console.log(`✅ DESCARGA COMPLETADA: ${reportesGitHub.length} reportes restaurados desde GitHub`);
+            return { exito: true, cantidad: reportesGitHub.length, accion: 'restore' };
+
+        } catch (error) {
+            console.error('❌ Error descargando reportes desde GitHub:', error);
+            throw error;
+        }
+    }
+
+    // BACKUP completo (subir todo local a GitHub)
     async sincronizarTodo() {
-        console.log('🚀 Iniciando sincronización completa con GitHub...');
+        console.log('🚀 Iniciando BACKUP completo a GitHub...');
         
         const resultados = {
             usuarios: null,
             reportes: null,
-            exito: false
+            exito: false,
+            accion: 'backup'
         };
 
         try {
@@ -271,28 +279,63 @@ class GitHubSync {
                 throw new Error('Configuración de GitHub incompleta. Por favor configura owner, repo y token.');
             }
 
-            // Sincronizar usuarios
+            // SUBIR usuarios locales a GitHub
             resultados.usuarios = await this.sincronizarUsuarios();
 
-            // Sincronizar reportes
+            // SUBIR reportes locales a GitHub
             resultados.reportes = await this.sincronizarReportes();
 
             // Actualizar metadata
             await this.escribirArchivo(
                 this.config.paths.metadata,
                 {
-                    ultimaSincronizacion: new Date().toISOString(),
+                    ultimoBackup: new Date().toISOString(),
                     usuarios: resultados.usuarios.cantidad,
-                    reportes: resultados.reportes.cantidad
+                    reportes: resultados.reportes.cantidad,
+                    tipo: 'backup_desde_local'
                 },
-                `Metadata de sincronización - ${new Date().toLocaleString()}`
+                `📤 Metadata de backup - ${new Date().toLocaleString()}`
             );
 
             resultados.exito = true;
-            console.log('✅ Sincronización completa exitosa');
+            console.log('✅ BACKUP completo exitoso - Datos locales subidos a GitHub');
 
         } catch (error) {
-            console.error('❌ Error en sincronización completa:', error);
+            console.error('❌ Error en backup completo:', error);
+            resultados.error = error.message;
+        }
+
+        return resultados;
+    }
+
+    // RESTORE completo (descargar todo desde GitHub a local)
+    async restaurarTodo() {
+        console.log('🚀 Iniciando RESTORE completo desde GitHub...');
+        
+        const resultados = {
+            usuarios: null,
+            reportes: null,
+            exito: false,
+            accion: 'restore'
+        };
+
+        try {
+            // Validar configuración
+            if (!validarConfiguracionGitHub(this.config)) {
+                throw new Error('Configuración de GitHub incompleta. Por favor configura owner, repo y token.');
+            }
+
+            // DESCARGAR usuarios desde GitHub
+            resultados.usuarios = await this.descargarUsuarios();
+
+            // DESCARGAR reportes desde GitHub
+            resultados.reportes = await this.descargarReportes();
+
+            resultados.exito = true;
+            console.log('✅ RESTORE completo exitoso - Datos de GitHub restaurados localmente');
+
+        } catch (error) {
+            console.error('❌ Error en restore completo:', error);
             resultados.error = error.message;
         }
 
