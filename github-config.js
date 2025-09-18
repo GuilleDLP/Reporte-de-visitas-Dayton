@@ -7,8 +7,9 @@ const githubConfig = {
     // Rutas de los archivos en el repositorio
     paths: {
         usuarios: 'data/usuarios.json',
-        reportes: 'data/reportes.json',
-        metadata: 'data/metadata.json'
+        reportes: 'data/reportes.json', // Legacy - para compatibilidad
+        reportesPorUsuario: (userId) => `data/reportes/${userId}.json`, // Nueva estructura
+        reportesFolder: 'data/reportes/' // Carpeta de reportes
     }
 };
 
