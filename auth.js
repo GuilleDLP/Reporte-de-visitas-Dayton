@@ -207,11 +207,8 @@ class SistemaAutenticacion {
             throw new Error('Solo los administradores pueden modificar usuarios');
         }
 
-        console.log('🔍 DEBUG EDICIÓN: Iniciando actualización de usuario:', username);
-        console.log('🔍 DEBUG EDICIÓN: Cambios solicitados:', cambios);
 
         const usuarios = this.obtenerUsuarios();
-        console.log('🔍 DEBUG EDICIÓN: Usuarios antes de modificar:', Object.keys(usuarios));
         
         const usuario = usuarios[username.toLowerCase()];
 
@@ -219,7 +216,6 @@ class SistemaAutenticacion {
             throw new Error('Usuario no encontrado');
         }
 
-        console.log('🔍 DEBUG EDICIÓN: Usuario original:', usuario);
 
         // Actualizar campos permitidos
         if (cambios.nombre) usuario.nombre = cambios.nombre;
@@ -232,16 +228,13 @@ class SistemaAutenticacion {
         usuario.modificadoPor = this.usuarioActual.id;
         usuario.pendienteSincronizacion = true; // Marcar como pendiente de sincronizar
 
-        console.log('🔍 DEBUG EDICIÓN: Usuario después de modificar:', usuario);
 
         usuarios[username.toLowerCase()] = usuario;
         this.guardarUsuarios(usuarios);
 
-        console.log('🔍 DEBUG EDICIÓN: Usuarios guardados en localStorage');
         
         // Verificar que se guardó correctamente
         const verificacion = this.obtenerUsuarios();
-        console.log('🔍 DEBUG EDICIÓN: Verificación - usuario guardado:', verificacion[username.toLowerCase()]);
 
         return usuario;
     }
