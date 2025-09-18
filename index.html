@@ -2461,8 +2461,11 @@ University of Dayton Publishing
             actualizarBotonGitHub();
         }, 1000);
         
-        // ============== CLASE GITHUBSYNC (INCLUIDA DIRECTAMENTE) ==============
-        class GitHubSync {
+        // ============== GITHUBSYNC SE CARGA DESDE ARCHIVO SEPARADO ==============
+        // ELIMINADO: Código duplicado que causaba conflictos
+        
+        // TEMPORAL: Clase vacía para evitar errores
+        class GitHubSyncDuplicada {
             constructor() {
                 this.config = cargarConfiguracionGitHub();
                 this.baseUrl = 'https://api.github.com';
@@ -2539,50 +2542,7 @@ University of Dayton Publishing
                 }
             }
 
-            async sincronizarUsuarios() {
-                console.log('🔄 Sincronizando usuarios con GitHub...');
-                
-                try {
-                    if (!window.sistemaAuth) {
-                        throw new Error('Sistema de autenticación no disponible');
-                    }
-                    const usuariosObj = window.sistemaAuth.obtenerUsuarios() || {};
-                    const usuariosLocales = Object.values(usuariosObj);
-                    console.log(`📊 Usuarios locales: ${usuariosLocales.length}`);
-
-                    const archivoGitHub = await this.leerArchivo(this.config.paths.usuarios);
-                    const usuariosGitHub = archivoGitHub ? archivoGitHub.content : [];
-                    console.log(`📊 Usuarios en GitHub: ${usuariosGitHub.length}`);
-
-                    const usuariosMap = new Map();
-                    usuariosGitHub.forEach(usuario => usuariosMap.set(usuario.id, usuario));
-                    usuariosLocales.forEach(usuario => {
-                        const existente = usuariosMap.get(usuario.id);
-                        if (!existente || new Date(usuario.ultimaModificacion) > new Date(existente.ultimaModificacion)) {
-                            usuariosMap.set(usuario.id, usuario);
-                        }
-                    });
-
-                    const usuariosMerged = Array.from(usuariosMap.values());
-                    const usuariosObj2 = {};
-                    usuariosMerged.forEach(usuario => usuariosObj2[usuario.id] = usuario);
-                    localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj2));
-
-                    await this.escribirArchivo(
-                        this.config.paths.usuarios,
-                        usuariosMerged,
-                        `Sincronización de usuarios - ${new Date().toLocaleString()}`,
-                        archivoGitHub?.sha
-                    );
-
-                    console.log(`✅ Sincronización completada: ${usuariosMerged.length} usuarios`);
-                    return { exito: true, cantidad: usuariosMerged.length };
-
-                } catch (error) {
-                    console.error('❌ Error en sincronización de usuarios:', error);
-                    throw error;
-                }
-            }
+            // ELIMINADO: Función duplicada que causaba problemas
 
             async sincronizarReportes() {
                 console.log('🔄 Sincronizando reportes con GitHub...');
