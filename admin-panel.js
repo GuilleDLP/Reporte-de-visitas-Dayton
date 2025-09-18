@@ -812,10 +812,16 @@ async function sincronizarUsuariosGitHub() {
         
         // Verificar que githubSync esté disponible
         if (!window.githubSync) {
-            alert('❌ Sistema de GitHub no disponible');
-            boton.textContent = textoOriginal;
-            boton.disabled = false;
-            return;
+            console.log('🔧 Intentando inicializar githubSync...');
+            // Usar la función global para asegurar GitHubSync
+            if (window.asegurarGitHubSync && window.asegurarGitHubSync()) {
+                console.log('✅ githubSync inicializado exitosamente');
+            } else {
+                alert('❌ Sistema de GitHub no disponible. Recarga la página y asegúrate de tener configuración válida.');
+                boton.textContent = textoOriginal;
+                boton.disabled = false;
+                return;
+            }
         }
         
         // Verificar configuración de GitHub
