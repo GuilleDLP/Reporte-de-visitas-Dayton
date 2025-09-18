@@ -938,8 +938,146 @@ async function crearNuevoUsuario() {
 }
 
 function editarUsuario(userId) {
-    // Función para editar usuario (puede implementarse más tarde)
-    alert('Función de edición no implementada aún');
+    try {
+        const usuarios = sistemaAuth.obtenerUsuarios();
+        const usuario = usuarios[userId];
+        
+        if (!usuario) {
+            alert('Usuario no encontrado');
+            return;
+        }
+
+        // Crear modal de edición
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10002';
+        
+        modal.innerHTML = `
+            <div style="background:white;padding:30px;border-radius:10px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
+                <h2 style="margin-bottom:20px;color:#2c3e50">✏️ Editar Usuario</h2>
+                <form id="editarUsuarioForm">
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;margin-bottom:5px;font-weight:600">ID de Usuario:</label>
+                        <input type="text" id="editUserId" value="${usuario.id}" 
+                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background:#f5f5f5" readonly>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;margin-bottom:5px;font-weight:600">Nombre Completo:</label>
+                        <input type="text" id="editUserName" value="${usuario.nombre}" 
+                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px" required>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;margin-bottom:5px;font-weight:600">Correo Electrónico:</label>
+                        <input type="email" id="editUserEmail" value="${usuario.email}" 
+                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px" required>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;margin-bottom:5px;font-weight:600">Nueva Contraseña:</label>
+                        <input type="password" id="editUserPassword" placeholder="Dejar vacío para mantener la actual" 
+                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                        <small style="color:#666;font-size:12px">Mínimo 6 caracteres si deseas cambiarla</small>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:block;margin-bottom:5px;font-weight:600">Rol:</label>
+                        <select id="editUserRole" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                            <option value="usuario" ${usuario.rol === 'usuario' ? 'selected' : ''}>Usuario</option>
+                            <option value="administrador" ${usuario.rol === 'administrador' ? 'selected' : ''}>Administrador</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom:15px">
+                        <label style="display:flex;align-items:center;gap:8px;font-weight:600">
+                            <input type="checkbox" id="editUserActive" ${usuario.activo ? 'checked' : ''}>
+                            Usuario Activo
+                        </label>
+                    </div>
+                    
+                    <div style="border-top:1px solid #eee;padding-top:15px;margin-top:15px">
+                        <small style="color:#666">
+                            <strong>Creado:</strong> ${new Date(usuario.fechaCreacion).toLocaleString()}<br>
+                            ${usuario.ultimoAcceso ? `<strong>Último acceso:</strong> ${new Date(usuario.ultimoAcceso).toLocaleString()}<br>` : ''}
+                            ${usuario.creadoPor ? `<strong>Creado por:</strong> ${usuario.creadoPor}<br>` : ''}
+                        </small>
+                    </div>
+                    
+                    <div style="display:flex;gap:10px;margin-top:20px">
+                        <button type="submit" class="btn-admin btn-success" style="background:#27ae60;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer">
+                            💾 Guardar Cambios
+                        </button>
+                        <button type="button" onclick="this.closest('.modal-overlay').remove()" 
+                                class="btn-admin btn-secondary" style="background:#95a5a6;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Manejar envío del formulario
+        document.getElementById('editarUsuarioForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('editUserName').value.trim();
+            const email = document.getElementById('editUserEmail').value.trim();
+            const password = document.getElementById('editUserPassword').value;
+            const rol = document.getElementById('editUserRole').value;
+            const activo = document.getElementById('editUserActive').checked;
+            
+            if (!nombre || !email) {
+                alert('Nombre y email son obligatorios');
+                return;
+            }
+            
+            if (password && password.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            try {
+                const cambios = {
+                    nombre,
+                    email,
+                    activo
+                };
+                
+                // Solo incluir password si se proporcionó uno nuevo
+                if (password) {
+                    cambios.password = password;
+                }
+                
+                // Solo cambiar rol si el usuario actual es admin y no se está editando a sí mismo
+                const usuarioActual = sistemaAuth.obtenerSesionActual();
+                if (usuarioActual.id !== userId) {
+                    cambios.rol = rol;
+                } else if (rol !== usuario.rol) {
+                    alert('⚠️ No puedes cambiar tu propio rol');
+                    return;
+                }
+                
+                const usuarioActualizado = sistemaAuth.actualizarUsuario(userId, cambios);
+                
+                alert(`✅ Usuario "${usuarioActualizado.nombre}" actualizado exitosamente`);
+                modal.remove();
+                
+                if (window.panelAdmin) {
+                    window.panelAdmin.cargarUsuarios();
+                }
+                
+            } catch (error) {
+                alert('❌ Error actualizando usuario: ' + error.message);
+            }
+        });
+        
+        // Enfocar el primer campo editable
+        setTimeout(() => {
+            document.getElementById('editUserName').focus();
+        }, 100);
+        
+    } catch (error) {
+        alert('❌ Error cargando datos del usuario: ' + error.message);
+        console.error('Error:', error);
+    }
 }
 
 function toggleUsuario(userId) {
