@@ -19,6 +19,7 @@ class SistemaAutenticacion {
     }
 
     obtenerUsuariosBase() {
+        const fechaBase = new Date().toISOString();
         return {
             'admin': {
                 id: 'admin',
@@ -27,7 +28,8 @@ class SistemaAutenticacion {
                 password: 'admin123', // En producción debe estar hasheada
                 rol: 'administrador',
                 activo: true,
-                fechaCreacion: new Date().toISOString(),
+                fechaCreacion: fechaBase,
+                fechaModificacion: fechaBase,
                 ultimoAcceso: null
             },
             'hpineda': {
@@ -37,7 +39,8 @@ class SistemaAutenticacion {
                 password: 'hpineda2024',
                 rol: 'usuario',
                 activo: true,
-                fechaCreacion: new Date().toISOString(),
+                fechaCreacion: fechaBase,
+                fechaModificacion: fechaBase,
                 ultimoAcceso: null
             },
             'fvillarreal': {
@@ -47,7 +50,8 @@ class SistemaAutenticacion {
                 password: 'fvillarreal2024',
                 rol: 'usuario',
                 activo: true,
-                fechaCreacion: new Date().toISOString(),
+                fechaCreacion: fechaBase,
+                fechaModificacion: fechaBase,
                 ultimoAcceso: null
             },
             'gdelaparra': {
@@ -57,7 +61,8 @@ class SistemaAutenticacion {
                 password: 'gdelaparra2024',
                 rol: 'usuario',
                 activo: true,
-                fechaCreacion: new Date().toISOString(),
+                fechaCreacion: fechaBase,
+                fechaModificacion: fechaBase,
                 ultimoAcceso: null
             },
             'aaguilar': {
@@ -67,7 +72,8 @@ class SistemaAutenticacion {
                 password: 'aaguilar2024',
                 rol: 'usuario',
                 activo: true,
-                fechaCreacion: new Date().toISOString(),
+                fechaCreacion: fechaBase,
+                fechaModificacion: fechaBase,
                 ultimoAcceso: null
             }
         };
@@ -183,8 +189,10 @@ class SistemaAutenticacion {
             rol: datosUsuario.rol || 'usuario',
             activo: true,
             fechaCreacion: new Date().toISOString(),
+            fechaModificacion: new Date().toISOString(),
             ultimoAcceso: null,
-            creadoPor: this.usuarioActual.id
+            creadoPor: this.usuarioActual.id,
+            pendienteSincronizacion: true
         };
 
         usuarios[username] = nuevoUsuario;
@@ -214,6 +222,7 @@ class SistemaAutenticacion {
         
         usuario.fechaModificacion = new Date().toISOString();
         usuario.modificadoPor = this.usuarioActual.id;
+        usuario.pendienteSincronizacion = true; // Marcar como pendiente de sincronizar
 
         usuarios[username.toLowerCase()] = usuario;
         this.guardarUsuarios(usuarios);
