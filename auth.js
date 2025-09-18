@@ -154,7 +154,37 @@ class SistemaAutenticacion {
     logout() {
         localStorage.removeItem(this.sessionKey);
         this.usuarioActual = null;
-        window.location.reload();
+
+        // Limpiar la interfaz antes de recargar
+        const userInfo = document.getElementById('userInfo');
+        if (userInfo) {
+            userInfo.style.display = 'none';
+        }
+
+        // Mostrar pantalla de login
+        this.mostrarPantallaLogin();
+    }
+
+    mostrarPantallaLogin() {
+        // Crear nueva instancia de login si no existe
+        if (!window.interfazLogin) {
+            window.interfazLogin = new InterfazLogin(this);
+        } else {
+            // Si ya existe, simplemente mostrarla
+            window.interfazLogin.mostrarLogin();
+        }
+
+        // Limpiar formulario principal
+        const form = document.getElementById('reportForm');
+        if (form) {
+            form.reset();
+        }
+
+        // Limpiar campos de vista previa
+        const vistaPrevia = document.getElementById('vistaPrevia');
+        if (vistaPrevia) {
+            vistaPrevia.innerHTML = '';
+        }
     }
 
     obtenerSesionActual() {
