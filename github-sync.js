@@ -117,11 +117,41 @@ class GitHubSync {
                 usuariosMap.set(usuario.id, usuario);
             });
 
-            // Agregar/actualizar con usuarios locales
+            // Agregar/actualizar con usuarios locales (prioridad a cambios locales recientes)
             usuariosLocales.forEach(usuario => {
                 const existente = usuariosMap.get(usuario.id);
-                if (!existente || new Date(usuario.ultimaModificacion) > new Date(existente.ultimaModificacion)) {
+                
+                // Si el usuario está marcado como pendiente de sincronización, SIEMPRE tiene prioridad
+                if (usuario.pendienteSincronizacion) {
+                    // Limpiar la marca de pendiente y marcar como sincronizado
+                    usuario.pendienteSincronizacion = false;
+                    usuario.ultimaSincronizacion = new Date().toISOString();
                     usuariosMap.set(usuario.id, usuario);
+                    console.log(`🔄 FORZANDO sincronización de usuario modificado localmente: ${usuario.nombre}`);
+                    return;
+                }
+                
+                // Si no existe en GitHub, agregarlo
+                if (!existente) {
+                    usuariosMap.set(usuario.id, usuario);
+                    console.log(`📝 Agregando usuario nuevo local: ${usuario.nombre}`);
+                    return;
+                }
+                
+                // Si el usuario local tiene fechaModificacion, comparar fechas
+                if (usuario.fechaModificacion) {
+                    const fechaLocal = new Date(usuario.fechaModificacion);
+                    const fechaGitHub = new Date(existente.fechaModificacion || existente.fechaCreacion);
+                    
+                    if (fechaLocal > fechaGitHub) {
+                        usuariosMap.set(usuario.id, usuario);
+                        console.log(`🔄 Actualizando usuario modificado localmente: ${usuario.nombre}`);
+                    } else {
+                        console.log(`📥 Manteniendo versión de GitHub para: ${usuario.nombre}`);
+                    }
+                } else {
+                    // Si el usuario local no tiene fechaModificacion, usar la versión de GitHub
+                    console.log(`📥 Usando versión de GitHub para usuario sin fechaModificacion: ${usuario.nombre}`);
                 }
             });
 
