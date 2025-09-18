@@ -117,11 +117,12 @@ class GitHubSync {
                 throw new Error('No hay usuarios locales para sincronizar');
             }
 
-            // Marcar todos los usuarios con timestamp de sincronización
+            // Marcar todos los usuarios con timestamp de sincronización y limpiar pendientes
             const usuariosParaSubir = usuariosLocales.map(usuario => ({
                 ...usuario,
                 ultimaSincronizacion: new Date().toISOString(),
-                sincronizadoDesde: 'local'
+                sincronizadoDesde: 'local',
+                pendienteSincronizacion: false // Limpiar flag después del backup
             }));
 
             // Obtener el SHA actual del archivo en GitHub (si existe)
@@ -134,6 +135,14 @@ class GitHubSync {
                 `📤 Backup de usuarios desde local - ${new Date().toLocaleString()}`,
                 archivoGitHub?.sha
             );
+
+            // Actualizar localStorage con usuarios "limpios" (sin pendienteSincronizacion)
+            const usuariosLimpios = {};
+            usuariosParaSubir.forEach(usuario => {
+                usuariosLimpios[usuario.id] = usuario;
+            });
+            localStorage.setItem('udp_usuarios', JSON.stringify(usuariosLimpios));
+            console.log('🧹 Flags pendienteSincronizacion limpiados en localStorage');
 
             console.log(`✅ BACKUP COMPLETADO: ${usuariosParaSubir.length} usuarios subidos a GitHub`);
             return { exito: true, cantidad: usuariosParaSubir.length, accion: 'backup' };
