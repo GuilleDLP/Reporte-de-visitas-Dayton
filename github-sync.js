@@ -96,10 +96,11 @@ class GitHubSync {
         
         try {
             // Obtener usuarios locales del sistema de autenticación
-            if (!window.sistemaAuth) {
+            const sistemaAuth = window.sistemaAuth || window.sistemaAutenticacion;
+            if (!sistemaAuth) {
                 throw new Error('Sistema de autenticación no disponible');
             }
-            const usuariosObj = window.sistemaAuth.obtenerUsuarios() || {};
+            const usuariosObj = sistemaAuth.obtenerUsuarios() || {};
             const usuariosLocales = Object.values(usuariosObj);
             console.log(`📊 Usuarios locales: ${usuariosLocales.length}`);
 
@@ -132,7 +133,7 @@ class GitHubSync {
             usuariosMerged.forEach(usuario => {
                 usuariosObj[usuario.id] = usuario;
             });
-            localStorage.setItem('usuarios', JSON.stringify(usuariosObj));
+            localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj));
 
             // Actualizar GitHub
             await this.escribirArchivo(
