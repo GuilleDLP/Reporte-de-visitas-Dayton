@@ -886,4 +886,87 @@ async function restaurarUsuariosBase() {
     }
 }
 
+// ============== FUNCIONES ADICIONALES PARA EL PANEL ==============
+
+function mostrarFormularioNuevoUsuario() {
+    const formulario = document.getElementById('formularioNuevoUsuario');
+    formulario.style.display = formulario.style.display === 'none' ? 'block' : 'none';
+}
+
+function cancelarNuevoUsuario() {
+    document.getElementById('formularioNuevoUsuario').style.display = 'none';
+    // Limpiar formulario
+    document.getElementById('nuevoUsername').value = '';
+    document.getElementById('nuevoNombre').value = '';
+    document.getElementById('nuevoEmail').value = '';
+    document.getElementById('nuevoPassword').value = '';
+    document.getElementById('nuevoRol').value = 'usuario';
+}
+
+async function crearNuevoUsuario() {
+    const username = document.getElementById('nuevoUsername').value.trim();
+    const nombre = document.getElementById('nuevoNombre').value.trim();
+    const email = document.getElementById('nuevoEmail').value.trim();
+    const password = document.getElementById('nuevoPassword').value;
+    const rol = document.getElementById('nuevoRol').value;
+
+    if (!username || !nombre || !email || !password) {
+        alert('Por favor completa todos los campos');
+        return;
+    }
+
+    if (password.length < 6) {
+        alert('La contraseña debe tener al menos 6 caracteres');
+        return;
+    }
+
+    try {
+        const nuevoUsuario = sistemaAuth.crearUsuario({
+            username,
+            nombre,
+            email,
+            password,
+            rol
+        });
+
+        alert(`✅ Usuario "${nuevoUsuario.nombre}" creado exitosamente`);
+        cancelarNuevoUsuario();
+        panelAdmin.cargarUsuarios();
+    } catch (error) {
+        alert('❌ Error creando usuario: ' + error.message);
+    }
+}
+
+function editarUsuario(userId) {
+    // Función para editar usuario (puede implementarse más tarde)
+    alert('Función de edición no implementada aún');
+}
+
+function toggleUsuario(userId) {
+    try {
+        const usuarios = sistemaAuth.obtenerUsuarios();
+        const usuario = usuarios[userId];
+        
+        if (!usuario) {
+            alert('Usuario no encontrado');
+            return;
+        }
+
+        const nuevoEstado = !usuario.activo;
+        
+        sistemaAuth.actualizarUsuario(userId, { activo: nuevoEstado });
+        
+        alert(`✅ Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
+        panelAdmin.cargarUsuarios();
+    } catch (error) {
+        alert('❌ Error actualizando usuario: ' + error.message);
+    }
+}
+
+function filtrarReportesAdmin() {
+    if (panelAdmin) {
+        panelAdmin.filtrarReportesAdmin();
+    }
+}
+
 console.log('⚙️ Panel de administrador cargado');
