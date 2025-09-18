@@ -15,7 +15,7 @@
     <!-- Configuración de GitHub -->
     <script src="./github-config.js" defer></script>
     <!-- Sistema de sincronización GitHub -->
-    <script src="./github-sync.js" defer></script>
+    <script src="./github-sync.js"></script>
     <style>
         * {
             margin: 0;
@@ -2393,6 +2393,211 @@ University of Dayton Publishing
         setTimeout(() => {
             actualizarBotonGitHub();
         }, 1000);
+        
+        // ============== CLASE GITHUBSYNC (INCLUIDA DIRECTAMENTE) ==============
+        class GitHubSync {
+            constructor() {
+                this.config = cargarConfiguracionGitHub();
+                this.baseUrl = 'https://api.github.com';
+            }
+
+            actualizarConfiguracion(owner, repo, token) {
+                this.config = { ...this.config, owner, repo, token };
+                guardarConfiguracionGitHub(this.config);
+            }
+
+            construirUrl(path) {
+                return `${this.baseUrl}/repos/${this.config.owner}/${this.config.repo}/contents/${path}`;
+            }
+
+            obtenerHeaders() {
+                return {
+                    'Authorization': `Bearer ${this.config.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                };
+            }
+
+            async leerArchivo(path) {
+                try {
+                    const response = await fetch(this.construirUrl(path), {
+                        headers: this.obtenerHeaders()
+                    });
+
+                    if (response.status === 404) {
+                        console.log(`📄 Archivo no existe en GitHub: ${path}`);
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`Error leyendo archivo: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const content = atob(data.content);
+                    return { content: JSON.parse(content), sha: data.sha };
+                } catch (error) {
+                    console.error('Error leyendo de GitHub:', error);
+                    throw error;
+                }
+            }
+
+            async escribirArchivo(path, content, message, sha = null) {
+                try {
+                    const body = {
+                        message: message,
+                        content: btoa(JSON.stringify(content, null, 2)),
+                        branch: this.config.branch
+                    };
+
+                    if (sha) body.sha = sha;
+
+                    const response = await fetch(this.construirUrl(path), {
+                        method: 'PUT',
+                        headers: this.obtenerHeaders(),
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error escribiendo archivo: ${JSON.stringify(error)}`);
+                    }
+
+                    const result = await response.json();
+                    console.log(`✅ Archivo guardado en GitHub: ${path}`);
+                    return result;
+                } catch (error) {
+                    console.error('Error escribiendo en GitHub:', error);
+                    throw error;
+                }
+            }
+
+            async sincronizarUsuarios() {
+                console.log('🔄 Sincronizando usuarios con GitHub...');
+                
+                try {
+                    if (!window.sistemaAuth) {
+                        throw new Error('Sistema de autenticación no disponible');
+                    }
+                    const usuariosObj = window.sistemaAuth.obtenerUsuarios() || {};
+                    const usuariosLocales = Object.values(usuariosObj);
+                    console.log(`📊 Usuarios locales: ${usuariosLocales.length}`);
+
+                    const archivoGitHub = await this.leerArchivo(this.config.paths.usuarios);
+                    const usuariosGitHub = archivoGitHub ? archivoGitHub.content : [];
+                    console.log(`📊 Usuarios en GitHub: ${usuariosGitHub.length}`);
+
+                    const usuariosMap = new Map();
+                    usuariosGitHub.forEach(usuario => usuariosMap.set(usuario.id, usuario));
+                    usuariosLocales.forEach(usuario => {
+                        const existente = usuariosMap.get(usuario.id);
+                        if (!existente || new Date(usuario.ultimaModificacion) > new Date(existente.ultimaModificacion)) {
+                            usuariosMap.set(usuario.id, usuario);
+                        }
+                    });
+
+                    const usuariosMerged = Array.from(usuariosMap.values());
+                    const usuariosObj2 = {};
+                    usuariosMerged.forEach(usuario => usuariosObj2[usuario.id] = usuario);
+                    localStorage.setItem('usuarios', JSON.stringify(usuariosObj2));
+
+                    await this.escribirArchivo(
+                        this.config.paths.usuarios,
+                        usuariosMerged,
+                        `Sincronización de usuarios - ${new Date().toLocaleString()}`,
+                        archivoGitHub?.sha
+                    );
+
+                    console.log(`✅ Sincronización completada: ${usuariosMerged.length} usuarios`);
+                    return { exito: true, cantidad: usuariosMerged.length };
+
+                } catch (error) {
+                    console.error('❌ Error en sincronización de usuarios:', error);
+                    throw error;
+                }
+            }
+
+            async sincronizarReportes() {
+                console.log('🔄 Sincronizando reportes con GitHub...');
+                
+                try {
+                    let reportesLocales = [];
+                    if (window.reportesDB && typeof window.reportesDB.obtenerTodosLosReportes === 'function') {
+                        reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
+                    } else {
+                        const reportesGuardados = localStorage.getItem('reportes') || '[]';
+                        reportesLocales = JSON.parse(reportesGuardados);
+                    }
+                    console.log(`📊 Reportes locales: ${reportesLocales.length}`);
+
+                    const archivoGitHub = await this.leerArchivo(this.config.paths.reportes);
+                    const reportesGitHub = archivoGitHub ? archivoGitHub.content : [];
+                    console.log(`📊 Reportes en GitHub: ${reportesGitHub.length}`);
+
+                    const reportesMap = new Map();
+                    reportesGitHub.forEach(reporte => reportesMap.set(reporte.id, reporte));
+                    reportesLocales.forEach(reporte => {
+                        const existente = reportesMap.get(reporte.id);
+                        if (!existente || new Date(reporte.fechaGuardado) > new Date(existente.fechaGuardado)) {
+                            reportesMap.set(reporte.id, reporte);
+                        }
+                    });
+
+                    const reportesMerged = Array.from(reportesMap.values());
+                    reportesMerged.forEach(reporte => reporte.sincronizadoGitHub = true);
+
+                    if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
+                        for (const reporte of reportesMerged) {
+                            await window.reportesDB.guardarReporte(reporte);
+                        }
+                    } else {
+                        localStorage.setItem('reportes', JSON.stringify(reportesMerged));
+                    }
+
+                    await this.escribirArchivo(
+                        this.config.paths.reportes,
+                        reportesMerged,
+                        `Sincronización de reportes - ${new Date().toLocaleString()}`,
+                        archivoGitHub?.sha
+                    );
+
+                    console.log(`✅ Sincronización completada: ${reportesMerged.length} reportes`);
+                    return { exito: true, cantidad: reportesMerged.length };
+
+                } catch (error) {
+                    console.error('❌ Error en sincronización de reportes:', error);
+                    throw error;
+                }
+            }
+
+            async probarConexion() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/repos/${this.config.owner}/${this.config.repo}`, {
+                        headers: this.obtenerHeaders()
+                    });
+
+                    if (response.ok) {
+                        const repo = await response.json();
+                        console.log('✅ Conexión exitosa con GitHub');
+                        console.log(`📦 Repositorio: ${repo.full_name}`);
+                        return { exito: true, repo };
+                    } else {
+                        throw new Error(`Error de conexión: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Error probando conexión:', error);
+                    return { exito: false, error: error.message };
+                }
+            }
+        }
+
+        // Inicializar githubSync
+        if (typeof cargarConfiguracionGitHub === 'function') {
+            window.githubSync = new GitHubSync();
+            console.log('✅ GitHubSync inicializado correctamente');
+        } else {
+            console.warn('⚠️ Funciones de configuración no disponibles aún');
+        }
         
     </script>
 
