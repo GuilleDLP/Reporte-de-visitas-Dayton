@@ -188,12 +188,24 @@ class SistemaAutenticacion {
     }
 
     obtenerSesionActual() {
-        const sesion = localStorage.getItem(this.sessionKey);
-        if (sesion) {
-            this.usuarioActual = JSON.parse(sesion);
-            return this.usuarioActual;
+        try {
+            const sesion = localStorage.getItem(this.sessionKey);
+            console.log('🔍 Verificando sesión almacenada:', sesion ? 'EXISTE' : 'NO EXISTE');
+
+            if (sesion) {
+                const sesionObj = JSON.parse(sesion);
+                console.log('✅ Sesión encontrada para:', sesionObj.nombre);
+                this.usuarioActual = sesionObj;
+                return this.usuarioActual;
+            }
+            console.log('❌ No hay sesión activa');
+            return null;
+        } catch (error) {
+            console.error('❌ Error al obtener sesión:', error);
+            // Limpiar sesión corrupta
+            localStorage.removeItem(this.sessionKey);
+            return null;
         }
-        return null;
     }
 
     esAdmin() {
@@ -620,27 +632,40 @@ window.sistemaAutenticacion = null;
 
 // Inicialización del sistema de autenticación
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Inicializando sistema de autenticación...');
+
     sistemaAuth = new SistemaAutenticacion();
-    
+
     // Establecer referencias globales
     window.sistemaAuth = sistemaAuth;
     window.sistemaAutenticacion = sistemaAuth;
-    
-    // Verificar si hay una sesión activa
-    const sesionActual = sistemaAuth.obtenerSesionActual();
-    
-    if (!sesionActual) {
-        // No hay sesión, mostrar login
-        interfazLogin = new InterfazLogin(sistemaAuth);
-    } else {
-        // Hay sesión activa, mostrar la app
-        console.log('✅ Sesión activa:', sesionActual);
-        window.inicializarAppConUsuario(sesionActual);
-        
-        if (sesionActual.rol === 'administrador') {
+
+    // Verificar si hay una sesión activa con manejo de errores mejorado
+    try {
+        const sesionActual = sistemaAuth.obtenerSesionActual();
+
+        if (!sesionActual) {
+            console.log('❌ No hay sesión activa - Mostrando login');
+            // No hay sesión, mostrar login
             interfazLogin = new InterfazLogin(sistemaAuth);
-            interfazLogin.mostrarPanelAdmin();
+        } else {
+            console.log('✅ Sesión activa encontrada - Restaurando app para:', sesionActual.nombre);
+
+            // Pequeño delay para asegurar que el DOM esté completamente cargado
+            setTimeout(() => {
+                // Hay sesión activa, mostrar la app
+                window.inicializarAppConUsuario(sesionActual);
+
+                if (sesionActual.rol === 'administrador') {
+                    interfazLogin = new InterfazLogin(sistemaAuth);
+                    interfazLogin.mostrarPanelAdmin();
+                }
+            }, 100);
         }
+    } catch (error) {
+        console.error('❌ Error en inicialización de autenticación:', error);
+        // En caso de error, mostrar login
+        interfazLogin = new InterfazLogin(sistemaAuth);
     }
 });
 
