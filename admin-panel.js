@@ -847,14 +847,12 @@ async function sincronizarUsuariosGitHub() {
         if (resultado.exito) {
             console.log('✅ Sincronización exitosa:', resultado);
             alert(`✅ Sincronización completada: ${resultado.cantidad} usuarios sincronizados`);
-            panelAdmin.cargarUsuarios();
+            if (window.panelAdmin) {
+                window.panelAdmin.cargarUsuarios();
+            }
         } else {
             throw new Error(resultado.error || 'Error desconocido');
         }
-        console.log('☁️ Paso 3: Subiendo usuarios a Firebase...');
-        boton.textContent = '⏳ Subiendo usuarios...';
-        
-        // Agregar timeout para evitar que se quede colgado
         
     } catch (error) {
         console.error('❌ Error en sincronización:', error);
@@ -931,7 +929,9 @@ async function crearNuevoUsuario() {
 
         alert(`✅ Usuario "${nuevoUsuario.nombre}" creado exitosamente`);
         cancelarNuevoUsuario();
-        panelAdmin.cargarUsuarios();
+        if (window.panelAdmin) {
+            window.panelAdmin.cargarUsuarios();
+        }
     } catch (error) {
         alert('❌ Error creando usuario: ' + error.message);
     }
@@ -957,15 +957,17 @@ function toggleUsuario(userId) {
         sistemaAuth.actualizarUsuario(userId, { activo: nuevoEstado });
         
         alert(`✅ Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
-        panelAdmin.cargarUsuarios();
+        if (window.panelAdmin) {
+            window.panelAdmin.cargarUsuarios();
+        }
     } catch (error) {
         alert('❌ Error actualizando usuario: ' + error.message);
     }
 }
 
 function filtrarReportesAdmin() {
-    if (panelAdmin) {
-        panelAdmin.filtrarReportesAdmin();
+    if (window.panelAdmin) {
+        window.panelAdmin.filtrarReportesAdmin();
     }
 }
 
