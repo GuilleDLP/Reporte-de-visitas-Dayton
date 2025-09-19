@@ -603,13 +603,18 @@ class PanelAdministrador {
         const container = document.getElementById('listaReportesAdmin');
         const filtroUsuario = document.getElementById('filtroUsuario').value;
         const filtroFecha = document.getElementById('filtroFecha').value;
-        
+
         let reportesFiltrados = this.reportes;
-        
+
         if (filtroUsuario) {
-            reportesFiltrados = reportesFiltrados.filter(r => r.usuarioId === filtroUsuario);
+            // Buscar tanto por usuarioId como por usuario (para compatibilidad)
+            reportesFiltrados = reportesFiltrados.filter(r =>
+                r.usuarioId === filtroUsuario ||
+                r.usuario === filtroUsuario ||
+                r.creadoPor === filtroUsuario
+            );
         }
-        
+
         if (filtroFecha) {
             reportesFiltrados = reportesFiltrados.filter(r => r.fecha === filtroFecha);
         }
@@ -829,10 +834,11 @@ async function toggleUsuario(userId) {
 
 function filtrarReportesAdmin() {
     // Esta función se ejecuta desde el HTML cuando cambian los filtros
-    const panel = new PanelAdministrador();
-    panel.reportes = window.reportesGlobalesAdmin || [];
-    panel.usuarios = sistemaAuth.obtenerUsuarios();
-    panel.filtrarReportesAdmin();
+    if (window.panelAdmin) {
+        window.panelAdmin.filtrarReportesAdmin();
+    } else {
+        console.error('Panel de administrador no está inicializado');
+    }
 }
 
 async function sincronizarUsuariosGitHub() {
