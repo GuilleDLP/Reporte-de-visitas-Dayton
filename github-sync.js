@@ -244,6 +244,17 @@ class GitHubSync {
                 archivoGitHub?.sha
             );
 
+            // Actualizar los reportes en la base de datos local para marcarlos como sincronizados
+            if (window.reportesDB && typeof window.reportesDB.actualizarReporte === 'function') {
+                for (const reporte of reportesParaSubir) {
+                    try {
+                        await window.reportesDB.actualizarReporte(reporte.id, reporte);
+                    } catch (err) {
+                        console.warn(`No se pudo actualizar reporte ${reporte.id}:`, err);
+                    }
+                }
+            }
+
             console.log(`✅ BACKUP COMPLETADO: ${reportesParaSubir.length} reportes de ${userId} subidos a GitHub`);
             return { exito: true, cantidad: reportesParaSubir.length, usuario: userId, accion: 'backup' };
 
@@ -381,7 +392,11 @@ class GitHubSync {
             
             // Guardar todos los reportes localmente
             if (reportesTotales.length > 0) {
-                if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
+                if (window.reportesDB) {
+                    // Primero limpiar todos los reportes existentes
+                    await window.reportesDB.eliminarTodosLosReportes();
+
+                    // Luego guardar los reportes descargados
                     for (const reporte of reportesTotales) {
                         await window.reportesDB.guardarReporte(reporte);
                     }
