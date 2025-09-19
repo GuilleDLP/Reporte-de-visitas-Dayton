@@ -46,7 +46,15 @@ class GitHubSync {
             }
 
             const data = await response.json();
-            const content = atob(data.content);
+
+            // Decodificar correctamente UTF-8 desde base64
+            const binaryString = atob(data.content);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            const content = new TextDecoder('utf-8').decode(bytes);
+
             return {
                 content: JSON.parse(content),
                 sha: data.sha
@@ -60,9 +68,16 @@ class GitHubSync {
     // Escribir archivo en GitHub
     async escribirArchivo(path, content, message, sha = null) {
         try {
+            // Codificar correctamente UTF-8 a base64
+            const jsonString = JSON.stringify(content, null, 2);
+            const encoder = new TextEncoder();
+            const utf8Bytes = encoder.encode(jsonString);
+            const binaryString = String.fromCharCode(...utf8Bytes);
+            const base64Content = btoa(binaryString);
+
             const body = {
                 message: message,
-                content: btoa(JSON.stringify(content, null, 2)),
+                content: base64Content,
                 branch: this.config.branch
             };
 
