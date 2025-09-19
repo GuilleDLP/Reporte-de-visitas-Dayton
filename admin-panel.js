@@ -641,21 +641,33 @@ class PanelAdministrador {
         container.innerHTML = reportesFiltrados.map(reporte => {
             const usuario = Object.values(this.usuarios).find(u => u.id === reporte.usuarioId);
             const nombreUsuario = usuario ? usuario.nombre : (reporte.usuarioId || 'Usuario Local');
-            
+
+            // Corregir problema de timezone agregando la hora del mediodía
+            const fechaCorregida = reporte.fecha + 'T12:00:00';
+            const fechaFormateada = new Date(fechaCorregida).toLocaleDateString('es-MX');
+
+            // Función helper para escapar HTML y preservar caracteres especiales
+            const escapeHtml = (text) => {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
             return `
                 <div class="reporte-admin-card">
                     <div class="reporte-admin-header">
                         <div>
-                            <strong>${reporte.colegio}</strong>
-                            <div class="reporte-admin-usuario">${nombreUsuario}</div>
+                            <strong>${escapeHtml(reporte.colegio)}</strong>
+                            <div class="reporte-admin-usuario">${escapeHtml(nombreUsuario)}</div>
                         </div>
                         <div>
-                            <small>${new Date(reporte.fecha).toLocaleDateString()}</small>
+                            <small>${fechaFormateada}</small>
                         </div>
                     </div>
-                    <p><strong>Contacto:</strong> ${reporte.nombreContacto} (${reporte.cargoContacto})</p>
-                    <p><strong>Zona:</strong> ${reporte.gerencia} - ${reporte.zona}</p>
-                    <p><strong>Objetivo:</strong> ${reporte.objetivo}</p>
+                    <p><strong>Contacto:</strong> ${escapeHtml(reporte.nombreContacto)} (${escapeHtml(reporte.cargoContacto)})</p>
+                    <p><strong>Zona:</strong> ${escapeHtml(reporte.gerencia)} - ${escapeHtml(reporte.zona)}</p>
+                    <p><strong>Objetivo:</strong> ${escapeHtml(reporte.objetivo)}</p>
                     ${reporte.sincronizadoFirebase ? 
                         '<span style="color: green;">☁️ Sincronizado</span>' : 
                         '<span style="color: orange;">📱 Solo local</span>'}
