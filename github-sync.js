@@ -511,6 +511,45 @@ class GitHubSync {
             return { exito: false, error: error.message };
         }
     }
+
+    // Sincronizar reportes después de eliminación (sobrescribir completamente en GitHub)
+    async sincronizarReportesConEliminacion(reportesRestantes) {
+        console.log('🔄 Sincronizando reportes con GitHub después de eliminación...');
+
+        try {
+            const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
+
+            if (!usuarioActual) {
+                throw new Error('No hay usuario autenticado');
+            }
+
+            // Obtener el SHA actual del archivo en GitHub
+            const pathUsuario = typeof this.config.paths.reportesPorUsuario === 'function'
+                ? this.config.paths.reportesPorUsuario(usuarioActual.id)
+                : `data/reportes/${usuarioActual.id}.json`;
+            const archivoUsuario = await this.leerArchivo(pathUsuario);
+
+            // Marcar todos como sincronizados
+            reportesRestantes.forEach(reporte => {
+                reporte.sincronizadoGitHub = true;
+            });
+
+            // Sobrescribir completamente el archivo en GitHub con los reportes restantes
+            await this.escribirArchivo(
+                pathUsuario,
+                reportesRestantes,
+                `Eliminación de reporte - ${usuarioActual.nombre} - ${new Date().toLocaleString()}`,
+                archivoUsuario?.sha
+            );
+
+            console.log(`✅ GitHub actualizado después de eliminación: ${reportesRestantes.length} reportes restantes`);
+            return { exito: true, cantidad: reportesRestantes.length };
+
+        } catch (error) {
+            console.error('❌ Error al actualizar GitHub después de eliminación:', error);
+            throw error;
+        }
+    }
 }
 
 // Función para inicializar githubSync cuando el DOM esté listo
