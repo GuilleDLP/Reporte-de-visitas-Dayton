@@ -977,16 +977,26 @@
 
             async obtenerTodosLosReportes() {
                 if (!this.db) throw new Error('Base de datos no inicializada');
-                
+
                 return new Promise((resolve, reject) => {
                     const transaction = this.db.transaction(['reportes'], 'readonly');
                     const store = transaction.objectStore('reportes');
                     const request = store.getAll();
-                    
+
                     request.onsuccess = () => {
-                        resolve(request.result);
+                        let reportes = request.result;
+
+                        // Filtrar reportes por usuario actual, excepto para administradores
+                        if (window.usuarioActual && window.usuarioActual.rol !== 'administrador') {
+                            reportes = reportes.filter(r =>
+                                r.usuarioId === window.usuarioActual.id ||
+                                r.usuario === window.usuarioActual.id
+                            );
+                        }
+
+                        resolve(reportes);
                     };
-                    
+
                     request.onerror = () => {
                         console.error('Error al obtener reportes:', request.error);
                         reject(request.error);
@@ -1364,8 +1374,10 @@
                 return;
             }
             
-            const fecha = formData.get('fecha');
-            const fechaFormateada = new Date(fecha).toLocaleDateString('es-MX', {
+            const fechaInput = formData.get('fecha');
+            // Corregir problema de timezone agregando la hora del mediodía
+            const fechaCorregida = fechaInput + 'T12:00:00';
+            const fechaFormateada = new Date(fechaCorregida).toLocaleDateString('es-MX', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -1612,12 +1624,31 @@ ${reporteActual.huboQuejas ? `
         }
 
         async function eliminarBorrador(id) {
-            if (confirm('¿Estás seguro de eliminar este borrador?')) {
+            if (confirm('¿Estás seguro de eliminar este borrador?\n\nEsta acción es PERMANENTE y también lo eliminará de GitHub si está sincronizado.')) {
                 try {
+                    // Eliminar localmente
                     await reportesDB.eliminarReporte(id);
+
+                    // Si hay conexión y configuración de GitHub, también eliminar de GitHub
+                    if (navigator.onLine && window.githubSync && validarConfiguracionGitHub(window.githubSync.config)) {
+                        try {
+                            // Obtener todos los reportes restantes después de la eliminación
+                            const reportesRestantes = await reportesDB.obtenerTodosLosReportes();
+
+                            // Sincronizar con GitHub (sobrescribir con los reportes restantes)
+                            await window.githubSync.sincronizarReportesConEliminacion(reportesRestantes);
+                            mostrarMensaje('🗑️ Borrador eliminado localmente y de GitHub');
+                        } catch (error) {
+                            console.error('Error al eliminar de GitHub:', error);
+                            mostrarMensaje('⚠️ Borrador eliminado localmente pero no se pudo sincronizar con GitHub', 'warning');
+                        }
+                    } else {
+                        mostrarMensaje('🗑️ Borrador eliminado localmente');
+                    }
+
                     await cargarBorradores();
                     await cargarAutocompletadoColegios();
-                    mostrarMensaje('🗑️ Borrador eliminado exitosamente');
+                    await actualizarEstadoSincronizacion();
                 } catch (error) {
                     console.error('Error al eliminar borrador:', error);
                     mostrarMensaje('❌ Error al eliminar el borrador', 'error');
@@ -1686,7 +1717,9 @@ ${reporteActual.huboQuejas ? `
             );
             
             borradoresOrdenados.forEach(borrador => {
-                const fecha = new Date(borrador.fecha).toLocaleDateString('es-MX');
+                // Corregir problema de timezone agregando la hora del mediodía
+                const fechaCorregida = borrador.fecha + 'T12:00:00';
+                const fecha = new Date(fechaCorregida).toLocaleDateString('es-MX');
                 const fechaGuardado = new Date(borrador.fechaGuardado).toLocaleDateString('es-MX');
                 
                 const item = document.createElement('div');
@@ -1745,7 +1778,9 @@ REPORTES COMPLETOS
 `;
                 
                 borradores.forEach((reporte, index) => {
-                    const fechaFormateada = new Date(reporte.fecha).toLocaleDateString('es-MX', {
+                    // Corregir problema de timezone agregando la hora del mediodía
+                    const fechaCorregida = reporte.fecha + 'T12:00:00';
+                    const fechaFormateada = new Date(fechaCorregida).toLocaleDateString('es-MX', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -1832,7 +1867,11 @@ ${'='.repeat(60)}
                     .sort(([,a], [,b]) => b - a)
                     .slice(0, 10);
                 
-                const fechas = borradores.map(b => new Date(b.fecha)).sort();
+                const fechas = borradores.map(b => {
+                    // Corregir problema de timezone agregando la hora del mediodía
+                    const fechaCorregida = b.fecha + 'T12:00:00';
+                    return new Date(fechaCorregida);
+                }).sort();
                 const fechaInicio = fechas[0].toLocaleDateString('es-MX');
                 const fechaFin = fechas[fechas.length - 1].toLocaleDateString('es-MX');
                 
