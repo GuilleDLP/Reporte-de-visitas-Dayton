@@ -12,6 +12,9 @@ class PanelAdministrador {
             return;
         }
 
+        // Asignar la instancia global para que las funciones HTML puedan acceder
+        window.panelAdmin = this;
+
         this.crearInterfaz();
         this.cargarDatos();
     }
@@ -602,23 +605,37 @@ class PanelAdministrador {
     }
 
     filtrarReportesAdmin() {
+        console.log('🔍 Ejecutando filtro de reportes admin...');
         const container = document.getElementById('listaReportesAdmin');
-        const filtroUsuario = document.getElementById('filtroUsuario').value;
-        const filtroFecha = document.getElementById('filtroFecha').value;
+        const filtroUsuario = document.getElementById('filtroUsuario')?.value || '';
+        const filtroFecha = document.getElementById('filtroFecha')?.value || '';
 
-        let reportesFiltrados = this.reportes;
+        console.log(`📊 Total reportes disponibles: ${this.reportes.length}`);
+        console.log(`🔍 Filtro usuario: "${filtroUsuario}"`);
+        console.log(`📅 Filtro fecha: "${filtroFecha}"`);
+
+        let reportesFiltrados = [...this.reportes];
 
         if (filtroUsuario) {
+            const antes = reportesFiltrados.length;
             // Buscar tanto por usuarioId como por usuario (para compatibilidad)
-            reportesFiltrados = reportesFiltrados.filter(r =>
-                r.usuarioId === filtroUsuario ||
-                r.usuario === filtroUsuario ||
-                r.creadoPor === filtroUsuario
-            );
+            reportesFiltrados = reportesFiltrados.filter(r => {
+                const coincide = r.usuarioId === filtroUsuario ||
+                                r.usuario === filtroUsuario ||
+                                r.creadoPor === filtroUsuario;
+
+                if (coincide) {
+                    console.log(`✅ Reporte coincide: ${r.colegio} - Usuario: ${r.usuarioId || r.usuario}`);
+                }
+                return coincide;
+            });
+            console.log(`👤 Después de filtrar por usuario: ${antes} → ${reportesFiltrados.length}`);
         }
 
         if (filtroFecha) {
+            const antes = reportesFiltrados.length;
             reportesFiltrados = reportesFiltrados.filter(r => r.fecha === filtroFecha);
+            console.log(`📅 Después de filtrar por fecha: ${antes} → ${reportesFiltrados.length}`);
         }
         
         container.innerHTML = reportesFiltrados.map(reporte => {
@@ -836,10 +853,25 @@ async function toggleUsuario(userId) {
 
 function filtrarReportesAdmin() {
     // Esta función se ejecuta desde el HTML cuando cambian los filtros
+    console.log('🎯 Función global filtrarReportesAdmin llamada');
     if (window.panelAdmin) {
+        console.log('✅ Panel admin encontrado, ejecutando filtro...');
         window.panelAdmin.filtrarReportesAdmin();
     } else {
-        console.error('Panel de administrador no está inicializado');
+        console.error('❌ Panel de administrador no está inicializado');
+        console.log('🔍 Intentando inicializar panel admin...');
+
+        // Intentar encontrar y usar el panel
+        if (typeof PanelAdministrador !== 'undefined') {
+            window.panelAdmin = new PanelAdministrador();
+            if (window.reportesDB) {
+                window.reportesDB.obtenerTodosLosReportesSinFiltrar().then(reportes => {
+                    window.panelAdmin.reportes = reportes;
+                    window.panelAdmin.usuarios = sistemaAuth.obtenerUsuarios();
+                    window.panelAdmin.filtrarReportesAdmin();
+                });
+            }
+        }
     }
 }
 
