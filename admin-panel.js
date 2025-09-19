@@ -1,1393 +1,2792 @@
-// ============== PANEL DE ADMINISTRADOR ==============
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes de Servicio - Dayton</title>
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- jsPDF desde CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Sistema de autenticación -->
+    <script src="./auth.js" defer></script>
+    <!-- Panel de administrador -->
+    <script src="./admin-panel.js" defer></script>
+    <!-- Configuración de GitHub -->
+    <script src="./github-config.js" defer></script>
+    <!-- Sistema de sincronización GitHub -->
+    <script src="./github-sync.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            /* Prevenir pull-to-refresh en móviles */
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        
+        .header-left {
+            text-align: left;
+        }
+        
+        .header-right {
+            text-align: right;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info span {
+            font-weight: 500;
+            color: #ecf0f1;
+        }
+        
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .form-container {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .sync-status-bar {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin: 15px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .sync-status-bar.warning {
+            background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+            border-left-color: #ff9800;
+        }
+        
+        .sync-status-bar.error {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-left-color: #f44336;
+        }
+        
+        .sync-status-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #syncStatusText {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .sync-badge {
+            background: #4caf50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .sync-badge.warning {
+            background: #ff9800;
+        }
+        
+        .sync-badge.error {
+            background: #f44336;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .reporte-preview {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+        
+        .reporte-preview h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .reporte-content {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .saved-reports {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e8f4f8;
+            border-radius: 8px;
+        }
+        
+        .saved-reports h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .reports-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .reports-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .search-filters {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .search-filters h4 {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .search-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .search-input, .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+        
+        .search-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.1);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #e1e8ed;
+            font-style: italic;
+        }
+        
+        .report-item {
+            background: white;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .report-item:hover {
+            background: #f0f8ff;
+            transform: translateX(5px);
+        }
+        
+        .report-item strong {
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .report-item small {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .report-actions {
+            margin-top: 10px;
+        }
+        
+        /* Mensajes de confirmación */
+        .message {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 16px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-style: italic;
+        }
+        
+        /* Responsive improvements */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
 
-class PanelAdministrador {
-    constructor() {
-        this.usuarios = [];
-        this.reportes = [];
-    }
+            .form-container {
+                padding: 20px;
+            }
 
-    mostrar() {
-        if (!sistemaAuth.esAdmin()) {
-            alert('Acceso denegado. Solo los administradores pueden acceder a este panel.');
-            return;
+            .header {
+                padding: 15px;
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .header-left,
+            .header-right {
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 22px;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .user-info {
+                flex-direction: column;
+                gap: 10px;
+                width: 100%;
+            }
+
+            .user-info span {
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+
+            .btn-logout,
+            .btn-admin-header,
+            .btn-small {
+                width: 100%;
+                max-width: 200px;
+                margin: 0 auto;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+
+            button {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+            
+            .reports-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .reports-actions {
+                justify-content: center;
+            }
+            
+            .search-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+    
+        .acciones {
+            margin-top: 10px;
+        }
+        .acciones button {
+            margin-right: 10px;
         }
 
-        // Asignar la instancia global para que las funciones HTML puedan acceder
-        window.panelAdmin = this;
+        .footer-leyenda {
+            margin-top: 50px;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #555;
+            background-color: #f1f1f1;
+            font-style: italic;
+            border-top: 1px solid #ddd;
+        }
 
-        this.crearInterfaz();
-        this.cargarDatos();
-    }
+        .form-section {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
 
-    crearInterfaz() {
-        // Crear overlay del panel admin
-        const adminHTML = `
-            <div id="adminOverlay" class="admin-overlay">
-                <div class="admin-panel">
-                    <div class="admin-header">
-                        <h2>⚙️ Panel de Administrador</h2>
-                        <button class="close-admin" onclick="cerrarPanelAdmin()">✖️</button>
-                    </div>
-                    
-                    <div class="admin-tabs">
-                        <button class="tab-button active" onclick="mostrarTab('usuarios')">👥 Usuarios</button>
-                        <button class="tab-button" onclick="mostrarTab('reportes')">📊 Reportes</button>
-                        <button class="tab-button" onclick="mostrarTab('estadisticas')">📈 Estadísticas</button>
-                    </div>
-                    
-                    <!-- TAB USUARIOS -->
-                    <div id="tab-usuarios" class="tab-content active">
-                        <div class="admin-section">
-                            <div class="section-header">
-                                <h3>Gestión de Usuarios</h3>
-                                <div>
-                                    <button class="btn-admin btn-info" onclick="sincronizarUsuariosGitHub()">
-                                        📤 Backup a GitHub
-                                    </button>
-                                    <button class="btn-admin btn-warning" onclick="restaurarUsuariosGitHub()">
-                                        📥 Restore desde GitHub
-                                    </button>
-                                    <button class="btn-admin btn-warning" onclick="restaurarUsuariosBase()">
-                                        🔧 Restaurar Usuarios Base
-                                    </button>
-                                    <button class="btn-admin btn-success" onclick="mostrarFormularioNuevoUsuario()">
-                                        ➕ Nuevo Usuario
-                                    </button>
-                                </div>
+        .form-section:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Contenedor para opciones horizontales */
+        .opciones-horizontal {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* Contenedor individual para cada opción */
+        .opcion {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .opcion:hover {
+            background-color: #e9ecef;
+        }
+
+        /* Estilos para radio buttons y checkboxes */
+        .form-section input[type="radio"],
+        .form-section input[type="checkbox"] {
+            width: auto;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        /* Labels para radio buttons y checkboxes */
+        .form-section .opcion label {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+
+        /* Estilo especial para checkboxes individuales */
+        .checkbox-individual {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 12px 15px;
+            background-color: #f8f9fa;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkbox-individual:hover {
+            background-color: #e9ecef;
+        }
+
+        .checkbox-individual:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-individual input[type="checkbox"] {
+            width: auto;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-individual label {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #2c3e50;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        /* Campos condicionales */
+        .campo-condicional {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .campo-condicional label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+
+        .campo-condicional input,
+        .campo-condicional select,
+        .campo-condicional textarea {
+            font-size: 14px;
+            padding: 10px 12px;
+        }
+
+        /* Responsive para opciones */
+        @media (max-width: 600px) {
+            .opciones-horizontal {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .opcion {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>Reportes de Servicio</h1>
+                <p>University of Dayton Publishing</p>
+            </div>
+            <div class="header-right" id="userInfo" style="display: none;">
+                <div class="user-info">
+                    <span id="userName"></span>
+                    <button id="btnConfigGitHub" class="btn-small btn-info" onclick="mostrarConfiguracionGitHub()" style="display: none; margin-right: 10px;">⚙️ Config GitHub</button>
+                    <button class="btn-logout" onclick="cerrarSesion()">🚪 Salir</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-container">
+            <div id="messages"></div>
+            
+            <form id="visitaForm">
+                <div class="form-group">
+                    <label for="colegio">Colegio</label>
+                    <input type="text" id="colegio" name="colegio" required list="colegiosDatalist" autocomplete="off">
+                    <datalist id="colegiosDatalist"></datalist>
+                </div>
+
+                <div class="form-group">
+                    <label>¿Es usuario?</label>
+                    <div class="form-section">
+                        <div class="opciones-horizontal">
+                            <div class="opcion">
+                                <input type="radio" name="esUsuario" id="usuario_si" value="Sí">
+                                <label for="usuario_si">Sí</label>
                             </div>
-                            
-                            <div id="formularioNuevoUsuario" class="nuevo-usuario-form" style="display: none;">
-                                <h4>Crear Nuevo Usuario</h4>
-                                <div class="form-row">
-                                    <div>
-                                        <label for="nuevoUsername">Usuario (ID)</label>
-                                        <input type="text" id="nuevoUsername" placeholder="ej: jperez" required>
-                                    </div>
-                                    <div>
-                                        <label for="nuevoNombre">Nombre Completo</label>
-                                        <input type="text" id="nuevoNombre" placeholder="Juan Pérez" required>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div>
-                                        <label for="nuevoEmail">Correo Electrónico</label>
-                                        <input type="email" id="nuevoEmail" placeholder="jperez@dayton.com" required>
-                                    </div>
-                                    <div>
-                                        <label for="nuevoPassword">Contraseña</label>
-                                        <input type="password" id="nuevoPassword" placeholder="Mínimo 6 caracteres" required>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div>
-                                        <label for="nuevoRol">Rol</label>
-                                        <select id="nuevoRol">
-                                            <option value="usuario">Usuario</option>
-                                            <option value="administrador">Administrador</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="form-actions">
-                                    <button class="btn-admin btn-success" onclick="crearNuevoUsuario()">Crear Usuario</button>
-                                    <button class="btn-admin btn-secondary" onclick="cancelarNuevoUsuario()">Cancelar</button>
-                                </div>
-                            </div>
-                            
-                            <div class="usuarios-lista">
-                                <div id="listaUsuarios"></div>
+                            <div class="opcion">
+                                <input type="radio" name="esUsuario" id="usuario_no" value="No">
+                                <label for="usuario_no">No</label>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- TAB REPORTES -->
-                    <div id="tab-reportes" class="tab-content">
-                        <div class="admin-section">
-                            <div class="section-header">
-                                <h3>Reportes de Todos los Usuarios</h3>
-                                <div>
-                                    <button class="btn-admin btn-info" onclick="sincronizarReportesAdminGitHub()">
-                                        📤 Backup Reportes a GitHub
-                                    </button>
-                                    <button class="btn-admin btn-warning" onclick="restaurarReportesAdminGitHub()">
-                                        📥 Restaurar Reportes desde GitHub
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="filtros-admin">
-                                <div class="form-row">
-                                    <div>
-                                        <label for="filtroUsuario">Filtrar por Usuario</label>
-                                        <select id="filtroUsuario" onchange="filtrarReportesAdmin()">
-                                            <option value="">Todos los usuarios</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label for="filtroFecha">Filtrar por Fecha</label>
-                                        <input type="date" id="filtroFecha" onchange="filtrarReportesAdmin()">
-                                    </div>
-                                </div>
-                            </div>
-                            <div id="listaReportesAdmin" class="reportes-admin-lista"></div>
+
+                        <div id="detalleUsuario" class="campo-condicional" style="display:none;">
+                            <label for="detalleUsuarioInput">¿De qué producto o línea?</label>
+                            <input type="text" id="detalleUsuarioInput" placeholder="Especificar producto o línea">
                         </div>
-                    </div>
-                    
-                    <!-- TAB ESTADÍSTICAS -->
-                    <div id="tab-estadisticas" class="tab-content">
-                        <div class="admin-section">
-                            <h3>Estadísticas Generales</h3>
-                            <div id="estadisticasGenerales" class="estadisticas-container"></div>
+
+                        <div id="detalleCompetencia" class="campo-condicional" style="display:none;">
+                            <label for="detalleCompetenciaInput">¿Qué competencia utiliza?</label>
+                            <input type="text" id="detalleCompetenciaInput" placeholder="Nombre de editorial o producto">
                         </div>
                     </div>
                 </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gerencia">Gerencia</label>
+                        <select id="gerencia" name="gerencia" required onchange="actualizarZonas()">
+                            <option value="">Seleccionar gerencia</option>
+                            <option value="Bajío">Bajío</option>
+                            <option value="Centro-Norte">Centro-Norte</option>
+                            <option value="Centro-Sur">Centro-Sur</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Occidente">Occidente</option>
+                            <option value="Oriente">Oriente</option>
+                            <option value="Pacífico">Pacífico</option>
+                            <option value="Sur">Sur</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zona">Zona Comercial</label>
+                        <select id="zona" name="zona" required>
+                            <option value="">Primero selecciona una gerencia</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fecha">Fecha de Visita</label>
+                        <input type="date" id="fecha" name="fecha" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="objetivo">Objetivo de la Visita</label>
+                        <select id="objetivo" name="objetivo" required onchange="mostrarCampoOtroObjetivo()">
+                            <option value="">Seleccionar objetivo</option>
+                            <option value="Presentación inicial">Presentación inicial</option>
+                            <option value="Seguimiento comercial">Seguimiento comercial</option>
+                            <option value="Demostración de producto">Demostración de producto</option>
+                            <option value="Capacitación">Capacitación</option>
+                            <option value="Resolución de dudas">Resolución de dudas</option>
+                            <option value="Renovación de contrato">Renovación de contrato</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                        <div id="otroObjetivoContainer" style="display: none; margin-top: 10px;">
+                            <label for="otroObjetivo">Especificar otro objetivo:</label>
+                            <input type="text" id="otroObjetivo" name="otroObjetivo" placeholder="Describe el objetivo específico...">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Datos de Contacto</label>
+                    <div class="form-row">
+                        <div>
+                            <label for="nombreContacto">Nombre</label>
+                            <input type="text" id="nombreContacto" name="nombreContacto" required>
+                        </div>
+                        <div>
+                            <label for="cargoContacto">Cargo</label>
+                            <input type="text" id="cargoContacto" name="cargoContacto" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div>
+                            <label for="telefonoContacto">Teléfono</label>
+                            <input type="tel" id="telefonoContacto" name="telefonoContacto" required 
+                                   placeholder="555-123-4567 o 5551234567"
+                                   onblur="formatearTelefono(this)">
+                        </div>
+                        <div>
+                            <label for="correoContacto">Correo electrónico</label>
+                            <input type="email" id="correoContacto" name="correoContacto" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="productos">Productos Presentados/Servicios Otorgados</label>
+                    <textarea id="productos" name="productos" placeholder="Describe los libros, niveles, o servicios que presentaste..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="notas">Notas Relevantes</label>
+                    <textarea id="notas" name="notas" placeholder="Observaciones importantes, reacciones del cliente, comentarios..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="compromisos">Compromisos y Siguientes Pasos</label>
+                    <textarea id="compromisos" name="compromisos" placeholder="¿Qué se acordó? ¿Cuáles son los próximos pasos?"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>¿Hubo comentarios, quejas o áreas de mejora?</label>
+                    <div class="checkbox-individual">
+                        <input type="checkbox" id="huboQuejas">
+                        <label for="huboQuejas">Sí, hubo comentarios o áreas de mejora</label>
+                    </div>
+
+                    <div id="detalleQuejas" class="campo-condicional" style="display:none;">
+                        <div style="margin-bottom: 15px;">
+                            <label for="categoriaQueja">Categoría:</label>
+                            <select id="categoriaQueja">
+                                <option value="">Selecciona una categoría</option>
+                                <option value="servicio">Servicio</option>
+                                <option value="precio">Precio</option>
+                                <option value="contenido">Contenido</option>
+                                <option value="metodología">Metodología</option>
+                                <option value="impresión">Impresión</option>
+                                <option value="digital">Digital</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="detalleQuejaTexto">Detalle:</label>
+                            <textarea id="detalleQuejaTexto" rows="3" placeholder="Describe el comentario o área de mejora..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttons">
+                    <button type="button" class="btn-primary" onclick="generarReporte()">
+                        📄 Generar Reporte
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="guardarReporte()">
+                        💾 Guardar Borrador
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="nuevoReporte()">
+                        🆕 Nuevo reporte
+                    </button>
+                </div>
+            </form>
+            
+            <div id="reportePreview" class="reporte-preview">
+                <h3>Vista Previa del Reporte</h3>
+                <div id="reporteContent" class="reporte-content"></div>
+                <div style="margin-top: 20px;">
+                    <button class="btn-small btn-primary" onclick="copiarReporte()">📋 Copiar</button>
+                    <button class="btn-small btn-secondary" onclick="enviarEmail()">📧 Enviar por Email</button>
+                    <button class="btn-small btn-success" onclick="descargarPDF()">📄 Descargar PDF</button>
+                </div>
             </div>
             
-            <style>
-                .admin-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.8);
-                    z-index: 10001;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 20px;
-                    box-sizing: border-box;
-                }
+            <div id="savedReports" class="saved-reports" style="display: none;">
+                <div class="reports-header">
+                    <h3>📁 Borradores Guardados</h3>
+                    <div class="reports-actions">
+                        <button id="btnSincronizar" class="btn-small btn-success" onclick="sincronizarReportesManual()">
+                            ☁️ Sincronizar
+                        </button>
+                        <button class="btn-small btn-info" onclick="exportarTodosBorradores()">
+                            📦 Exportar Todos
+                        </button>
+                        <button class="btn-small btn-info" onclick="generarEstadisticas()">
+                            📊 Estadísticas
+                        </button>
+                        <button class="btn-small btn-danger" onclick="eliminarTodosBorradores()">
+                            🗑️ Eliminar Todos
+                        </button>
+                    </div>
+                </div>
                 
-                .admin-panel {
-                    background: white;
-                    border-radius: 15px;
-                    width: 100%;
-                    max-width: 1200px;
-                    max-height: 90vh;
-                    overflow-y: auto;
-                    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-                }
+                <div id="syncStatus" class="sync-status-bar" style="display: none;">
+                    <div class="sync-status-content">
+                        <span id="syncStatusText">Estado de sincronización</span>
+                        <span id="syncStatusBadge" class="sync-badge"></span>
+                    </div>
+                </div>
                 
-                .admin-header {
-                    background: linear-gradient(135deg, #2c3e50, #34495e);
-                    color: white;
-                    padding: 20px 30px;
-                    border-radius: 15px 15px 0 0;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
+                <div class="search-filters">
+                    <h4>🔍 Buscar y Filtrar Reportes</h4>
+                    <div class="search-row">
+                        <div>
+                            <label for="searchInput" style="font-size: 14px; margin-bottom: 5px;">Buscar por colegio, contacto o zona:</label>
+                            <input type="text" id="searchInput" class="search-input" 
+                                   placeholder="Escribe para buscar..." 
+                                   oninput="filtrarBorradores()">
+                        </div>
+                        <div>
+                            <label for="gerenciaFilter" style="font-size: 14px; margin-bottom: 5px;">Filtrar por gerencia:</label>
+                            <select id="gerenciaFilter" class="filter-select" onchange="filtrarBorradores()">
+                                <option value="">Todas las gerencias</option>
+                                <option value="Bajío">Bajío</option>
+                                <option value="Centro-Norte">Centro-Norte</option>
+                                <option value="Centro-Sur">Centro-Sur</option>
+                                <option value="Norte">Norte</option>
+                                <option value="Occidente">Occidente</option>
+                                <option value="Oriente">Oriente</option>
+                                <option value="Pacífico">Pacífico</option>
+                                <option value="Sur">Sur</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 
-                .admin-header h2 {
-                    margin: 0;
-                    font-size: 24px;
-                }
-                
-                .close-admin {
-                    background: none;
-                    border: none;
-                    color: white;
-                    font-size: 20px;
-                    cursor: pointer;
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    transition: background 0.3s;
-                }
-                
-                .close-admin:hover {
-                    background: rgba(255,255,255,0.2);
-                }
-                
-                .admin-tabs {
-                    display: flex;
-                    background: #f8f9fa;
-                    border-bottom: 1px solid #e1e8ed;
-                }
-                
-                .tab-button {
-                    flex: 1;
-                    padding: 15px 20px;
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    font-size: 16px;
-                    font-weight: 500;
-                    transition: all 0.3s;
-                    border-bottom: 3px solid transparent;
-                }
-                
-                .tab-button:hover {
-                    background: #e9ecef;
-                }
-                
-                .tab-button.active {
-                    background: white;
-                    border-bottom-color: #667eea;
-                    color: #667eea;
-                }
-                
-                .tab-content {
-                    display: none;
-                    padding: 30px;
-                }
-                
-                .tab-content.active {
-                    display: block;
-                }
-                
-                .admin-section {
-                    margin-bottom: 30px;
-                }
-                
-                .section-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 20px;
-                }
-                
-                .section-header h3 {
-                    margin: 0;
-                    color: #2c3e50;
-                }
-                
-                .btn-admin {
-                    padding: 10px 20px;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: 500;
-                    cursor: pointer;
-                    transition: all 0.3s;
-                    margin: 0 5px;
-                }
-                
-                .btn-admin.btn-success {
-                    background: #28a745;
-                    color: white;
-                }
-                
-                .btn-admin.btn-danger {
-                    background: #dc3545;
-                    color: white;
-                }
-                
-                .btn-admin.btn-warning {
-                    background: #ffc107;
-                    color: #212529;
-                }
-                
-                .btn-admin.btn-secondary {
-                    background: #6c757d;
-                    color: white;
-                }
-                
-                .btn-admin.btn-info {
-                    background: #17a2b8;
-                    color: white;
-                }
-                
-                .btn-admin:hover {
-                    transform: translateY(-1px);
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                }
-                
-                .nuevo-usuario-form {
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                    border: 2px solid #e1e8ed;
-                }
-                
-                .nuevo-usuario-form h4 {
-                    margin: 0 0 20px 0;
-                    color: #2c3e50;
-                }
-                
-                .form-row {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 15px;
-                    margin-bottom: 15px;
-                }
-                
-                .form-row > div {
-                    display: flex;
-                    flex-direction: column;
-                }
-                
-                .nuevo-usuario-form label {
-                    font-weight: 600;
-                    margin-bottom: 5px;
-                    color: #2c3e50;
-                }
-                
-                .nuevo-usuario-form input,
-                .nuevo-usuario-form select {
-                    padding: 10px;
-                    border: 1px solid #ced4da;
-                    border-radius: 6px;
-                    font-size: 14px;
-                }
-                
-                .form-actions {
-                    display: flex;
-                    gap: 10px;
-                    margin-top: 20px;
-                }
-                
-                .usuario-card {
-                    background: white;
-                    border: 1px solid #e1e8ed;
-                    border-radius: 10px;
-                    padding: 20px;
-                    margin-bottom: 15px;
-                    transition: all 0.3s;
-                }
-                
-                .usuario-card:hover {
-                    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-                    transform: translateY(-2px);
-                }
-                
-                .usuario-info {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr auto;
-                    gap: 15px;
-                    align-items: center;
-                }
-                
-                .usuario-datos h4 {
-                    margin: 0 0 5px 0;
-                    color: #2c3e50;
-                }
-                
-                .usuario-datos p {
-                    margin: 2px 0;
-                    color: #6c757d;
-                    font-size: 14px;
-                }
-                
-                .usuario-estado {
-                    padding: 4px 12px;
-                    border-radius: 20px;
-                    font-size: 12px;
-                    font-weight: 500;
-                    text-align: center;
-                }
-                
-                .usuario-estado.activo {
-                    background: #d4edda;
-                    color: #155724;
-                }
-                
-                .usuario-estado.inactivo {
-                    background: #f8d7da;
-                    color: #721c24;
-                }
-                
-                .usuario-acciones {
-                    display: flex;
-                    gap: 5px;
-                }
-                
-                .filtros-admin {
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-bottom: 20px;
-                }
-                
-                .reporte-admin-card {
-                    background: white;
-                    border: 1px solid #e1e8ed;
-                    border-radius: 8px;
-                    padding: 15px;
-                    margin-bottom: 10px;
-                    border-left: 4px solid #667eea;
-                }
-                
-                .reporte-admin-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 10px;
-                }
-                
-                .reporte-admin-usuario {
-                    background: #667eea;
-                    color: white;
-                    padding: 2px 8px;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: 500;
-                }
-                
-                .estadisticas-container {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                    gap: 20px;
-                }
-                
-                .stat-card {
-                    background: white;
-                    border: 1px solid #e1e8ed;
-                    border-radius: 10px;
-                    padding: 20px;
-                    text-align: center;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-                }
-                
-                .stat-number {
-                    font-size: 32px;
-                    font-weight: bold;
-                    color: #667eea;
-                    margin-bottom: 10px;
-                }
-                
-                .stat-label {
-                    color: #6c757d;
-                    font-size: 14px;
-                    font-weight: 500;
-                }
-                
-                @media (max-width: 768px) {
-                    .admin-panel {
-                        width: 95%;
-                        height: 95%;
-                        margin: 20px;
-                    }
-                    
-                    .form-row {
-                        grid-template-columns: 1fr;
-                    }
-                    
-                    .usuario-info {
-                        grid-template-columns: 1fr;
-                        text-align: center;
-                    }
-                    
-                    .admin-tabs {
-                        flex-direction: column;
-                    }
-                }
-            </style>
-        `;
+                <div id="reportsList"></div>
+                <div id="noResults" class="no-results" style="display: none;">
+                    🔍 No se encontraron reportes que coincidan con tu búsqueda
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // Insertar en el DOM
-        const existingOverlay = document.getElementById('adminOverlay');
-        if (existingOverlay) {
-            existingOverlay.remove();
-        }
-        
-        document.body.insertAdjacentHTML('beforeend', adminHTML);
-    }
+    <script>
+        // ====================== CLASE PARA MANEJO DE INDEXEDDB ======================
+        class ReportesDB {
+            constructor() {
+                this.dbName = 'ReportesVisitaDB';
+                this.version = 1;
+                this.db = null;
+            }
 
-    async cargarDatos() {
-        // Cargar usuarios - siempre usar método local primero
-        try {
-            // Intentar método asíncrono si está disponible
-            if (typeof sistemaAuth.listarUsuarios === 'function') {
-                this.usuarios = await sistemaAuth.listarUsuarios();
-            } else {
-                // Fallback a método síncrono
-                this.usuarios = sistemaAuth.obtenerUsuarios() || {};
-            }
-            
-            if (Object.keys(this.usuarios).length === 0) {
-                console.warn('⚠️ No hay usuarios cargados');
-            }
-            
-            this.mostrarUsuarios();
-            
-        } catch (error) {
-            console.error('Error cargando usuarios:', error);
-            // Fallback directo a usuarios locales
-            this.usuarios = sistemaAuth.obtenerUsuarios() || {};
-            this.mostrarUsuarios();
-        }
-        
-        // Cargar reportes locales (sin filtrar - el admin ve todo)
-        try {
-            if (window.reportesDB) {
-                // Como admin, necesitamos ver TODOS los reportes sin filtrar
-                const reportesLocales = await window.reportesDB.obtenerTodosLosReportesSinFiltrar();
-                this.reportes = reportesLocales;
-                console.log(`📊 Admin panel cargó ${reportesLocales.length} reportes total`);
-            } else {
-                // Fallback a localStorage
-                const reportesGuardados = localStorage.getItem('reportes') || '[]';
-                this.reportes = JSON.parse(reportesGuardados);
-            }
-            
-            // Si somos admin y hay GitHub sync disponible, intentar cargar reportes de todos los usuarios
-            const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
-            if (usuarioActual && usuarioActual.rol === 'administrador' && window.githubSync) {
-                console.log('👑 Admin detectado: Intentando cargar reportes de todos los usuarios desde GitHub...');
-                try {
-                    const resultadoDescarga = await window.githubSync.descargarReportesDeTodosLosUsuarios();
-                    if (resultadoDescarga.exito && resultadoDescarga.totalReportes > 0) {
-                        console.log(`✅ Admin: ${resultadoDescarga.totalReportes} reportes cargados desde GitHub`);
-                        // Recargar reportes después de la descarga
-                        if (window.reportesDB) {
-                            this.reportes = await window.reportesDB.obtenerTodosLosReportes();
-                        } else {
-                            const reportesActualizados = localStorage.getItem('reportes') || '[]';
-                            this.reportes = JSON.parse(reportesActualizados);
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onerror = () => {
+                        console.error('Error al abrir IndexedDB:', request.error);
+                        reject(request.error);
+                    };
+                    
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        console.log('IndexedDB inicializada correctamente');
+                        resolve(this.db);
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        // Crear object store para reportes si no existe
+                        if (!db.objectStoreNames.contains('reportes')) {
+                            const reportesStore = db.createObjectStore('reportes', { 
+                                keyPath: 'id', 
+                                autoIncrement: false 
+                            });
+                            
+                            // Crear índices para búsquedas eficientes
+                            reportesStore.createIndex('colegio', 'colegio', { unique: false });
+                            reportesStore.createIndex('gerencia', 'gerencia', { unique: false });
+                            reportesStore.createIndex('zona', 'zona', { unique: false });
+                            reportesStore.createIndex('fecha', 'fecha', { unique: false });
+                            reportesStore.createIndex('fechaGuardado', 'fechaGuardado', { unique: false });
+                            reportesStore.createIndex('nombreContacto', 'nombreContacto', { unique: false });
+                            
+                            console.log('Object store "reportes" creado con índices');
                         }
+                    };
+                });
+            }
+
+            async guardarReporte(reporte) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readwrite');
+                    const store = transaction.objectStore('reportes');
+
+                    // Asegurar que el reporte tenga un ID único
+                    if (!reporte.id) {
+                        reporte.id = Date.now() + Math.random().toString(36).substr(2, 9);
                     }
-                } catch (errorGitHub) {
-                    console.log('⚠️ No se pudieron cargar reportes adicionales desde GitHub:', errorGitHub.message);
-                }
+
+                    // Usar put() en lugar de add() para permitir sobrescribir
+                    const request = store.put(reporte);
+
+                    request.onsuccess = () => {
+                        console.log('Reporte guardado:', reporte.id);
+                        resolve(reporte.id);
+                    };
+
+                    request.onerror = () => {
+                        console.error('Error al guardar reporte:', request.error);
+                        reject(request.error);
+                    };
+                });
             }
-            
-            this.mostrarReportes();
-            this.mostrarEstadisticas();
-        } catch (error) {
-            console.error('Error cargando reportes:', error);
-            this.reportes = [];
-        }
-        this.mostrarEstadisticas();
-    }
 
-    mostrarUsuarios() {
-        const container = document.getElementById('listaUsuarios');
-        const usuarios = Object.values(this.usuarios);
-        
-        container.innerHTML = usuarios.map(usuario => `
-            <div class="usuario-card">
-                <div class="usuario-info">
-                    <div class="usuario-datos">
-                        <h4>${usuario.nombre}</h4>
-                        <p>👤 ${usuario.id}</p>
-                        <p>📧 ${usuario.email}</p>
-                        <p>🔑 ${usuario.rol}</p>
-                    </div>
-                    <div>
-                        <p><strong>Creado:</strong></p>
-                        <p>${new Date(usuario.fechaCreacion).toLocaleDateString()}</p>
-                        ${usuario.ultimoAcceso ? `
-                            <p><strong>Último acceso:</strong></p>
-                            <p>${new Date(usuario.ultimoAcceso).toLocaleDateString()}</p>
-                        ` : '<p><em>Sin accesos</em></p>'}
-                    </div>
-                    <div class="usuario-estado ${usuario.activo ? 'activo' : 'inactivo'}">
-                        ${usuario.activo ? '✅ Activo' : '❌ Inactivo'}
-                    </div>
-                    <div class="usuario-acciones">
-                        <button class="btn-admin btn-warning" onclick="editarUsuario('${usuario.id}')">
-                            ✏️ Editar
-                        </button>
-                        <button class="btn-admin ${usuario.activo ? 'btn-danger' : 'btn-success'}" 
-                                onclick="toggleUsuario('${usuario.id}')">
-                            ${usuario.activo ? '🚫 Desactivar' : '✅ Activar'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
+            async obtenerTodosLosReportes() {
+                if (!this.db) throw new Error('Base de datos no inicializada');
 
-    mostrarReportes() {
-        const container = document.getElementById('listaReportesAdmin');
-        const filtroUsuario = document.getElementById('filtroUsuario');
-        
-        // Llenar opciones de filtro de usuario
-        const usuariosUnicos = [...new Set(this.reportes.map(r => r.usuarioId || 'local').filter(Boolean))];
-        filtroUsuario.innerHTML = '<option value="">Todos los usuarios</option>' +
-            usuariosUnicos.map(userId => {
-                const usuario = Object.values(this.usuarios).find(u => u.id === userId);
-                const nombre = usuario ? usuario.nombre : userId;
-                return `<option value="${userId}">${nombre}</option>`;
-            }).join('');
-        
-        this.filtrarReportesAdmin();
-    }
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.getAll();
 
-    filtrarReportesAdmin() {
-        console.log('🔍 Ejecutando filtro de reportes admin...');
-        const container = document.getElementById('listaReportesAdmin');
-        const filtroUsuario = document.getElementById('filtroUsuario')?.value || '';
-        const filtroFecha = document.getElementById('filtroFecha')?.value || '';
+                    request.onsuccess = () => {
+                        let reportes = request.result;
 
-        console.log(`📊 Total reportes disponibles: ${this.reportes.length}`);
-        console.log(`🔍 Filtro usuario: "${filtroUsuario}"`);
-        console.log(`📅 Filtro fecha: "${filtroFecha}"`);
+                        // Filtrar reportes por usuario actual, excepto para administradores
+                        if (window.usuarioActual && window.usuarioActual.rol !== 'administrador') {
+                            reportes = reportes.filter(r =>
+                                r.usuarioId === window.usuarioActual.id ||
+                                r.usuario === window.usuarioActual.id
+                            );
+                        }
 
-        let reportesFiltrados = [...this.reportes];
+                        resolve(reportes);
+                    };
 
-        if (filtroUsuario) {
-            const antes = reportesFiltrados.length;
-            // Buscar tanto por usuarioId como por usuario (para compatibilidad)
-            reportesFiltrados = reportesFiltrados.filter(r => {
-                const coincide = r.usuarioId === filtroUsuario ||
-                                r.usuario === filtroUsuario ||
-                                r.creadoPor === filtroUsuario;
-
-                if (coincide) {
-                    console.log(`✅ Reporte coincide: ${r.colegio} - Usuario: ${r.usuarioId || r.usuario}`);
-                }
-                return coincide;
-            });
-            console.log(`👤 Después de filtrar por usuario: ${antes} → ${reportesFiltrados.length}`);
-        }
-
-        if (filtroFecha) {
-            const antes = reportesFiltrados.length;
-            reportesFiltrados = reportesFiltrados.filter(r => r.fecha === filtroFecha);
-            console.log(`📅 Después de filtrar por fecha: ${antes} → ${reportesFiltrados.length}`);
-        }
-        
-        container.innerHTML = reportesFiltrados.map(reporte => {
-            const usuario = Object.values(this.usuarios).find(u => u.id === reporte.usuarioId);
-            const nombreUsuario = usuario ? usuario.nombre : (reporte.usuarioId || 'Usuario Local');
-            
-            return `
-                <div class="reporte-admin-card">
-                    <div class="reporte-admin-header">
-                        <div>
-                            <strong>${reporte.colegio}</strong>
-                            <div class="reporte-admin-usuario">${nombreUsuario}</div>
-                        </div>
-                        <div>
-                            <small>${new Date(reporte.fecha).toLocaleDateString()}</small>
-                        </div>
-                    </div>
-                    <p><strong>Contacto:</strong> ${reporte.nombreContacto} (${reporte.cargoContacto})</p>
-                    <p><strong>Zona:</strong> ${reporte.gerencia} - ${reporte.zona}</p>
-                    <p><strong>Objetivo:</strong> ${reporte.objetivo}</p>
-                    ${reporte.sincronizadoFirebase ? 
-                        '<span style="color: green;">☁️ Sincronizado</span>' : 
-                        '<span style="color: orange;">📱 Solo local</span>'}
-                </div>
-            `;
-        }).join('');
-        
-        if (reportesFiltrados.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #6c757d; font-style: italic;">No se encontraron reportes con los filtros aplicados</p>';
-        }
-    }
-
-    mostrarEstadisticas() {
-        const container = document.getElementById('estadisticasGenerales');
-        const usuarios = Object.values(this.usuarios);
-        const usuariosActivos = usuarios.filter(u => u.activo).length;
-        const totalReportes = this.reportes.length;
-        const reportesSincronizados = this.reportes.filter(r => r.sincronizadoFirebase).length;
-        
-        // Estadísticas por usuario
-        const reportesPorUsuario = {};
-        this.reportes.forEach(reporte => {
-            const userId = reporte.usuarioId || 'local';
-            reportesPorUsuario[userId] = (reportesPorUsuario[userId] || 0) + 1;
-        });
-        
-        container.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-number">${usuarios.length}</div>
-                <div class="stat-label">Total Usuarios</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${usuariosActivos}</div>
-                <div class="stat-label">Usuarios Activos</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${totalReportes}</div>
-                <div class="stat-label">Total Reportes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${reportesSincronizados}</div>
-                <div class="stat-label">Reportes Sincronizados</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${Object.keys(reportesPorUsuario).length}</div>
-                <div class="stat-label">Usuarios con Reportes</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${Math.round(totalReportes / usuarios.length)}</div>
-                <div class="stat-label">Promedio por Usuario</div>
-            </div>
-        `;
-    }
-}
-
-// ============== FUNCIONES GLOBALES DEL PANEL ADMIN ==============
-
-function mostrarPanelAdministrador() {
-    const panel = new PanelAdministrador();
-    panel.mostrar();
-}
-
-function cerrarPanelAdmin() {
-    const overlay = document.getElementById('adminOverlay');
-    if (overlay) {
-        overlay.remove();
-    }
-}
-
-function mostrarTab(tabName) {
-    // Ocultar todas las tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar la tab seleccionada
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-    event.target.classList.add('active');
-}
-
-function mostrarFormularioNuevoUsuario() {
-    const form = document.getElementById('formularioNuevoUsuario');
-    form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-
-function cancelarNuevoUsuario() {
-    document.getElementById('formularioNuevoUsuario').style.display = 'none';
-    // Limpiar campos
-    ['nuevoUsername', 'nuevoNombre', 'nuevoEmail', 'nuevoPassword'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('nuevoRol').value = 'usuario';
-}
-
-async function crearNuevoUsuario() {
-    const username = document.getElementById('nuevoUsername').value.trim();
-    const nombre = document.getElementById('nuevoNombre').value.trim();
-    const email = document.getElementById('nuevoEmail').value.trim();
-    const password = document.getElementById('nuevoPassword').value;
-    const rol = document.getElementById('nuevoRol').value;
-    
-    if (!username || !nombre || !email || !password) {
-        alert('Por favor completa todos los campos');
-        return;
-    }
-    
-    if (password.length < 6) {
-        alert('La contraseña debe tener al menos 6 caracteres');
-        return;
-    }
-    
-    try {
-        // Mostrar mensaje de carga
-        const boton = event.target;
-        const textoOriginal = boton.textContent;
-        boton.textContent = 'Creando...';
-        boton.disabled = true;
-        
-        await sistemaAuth.crearUsuario({
-            id: username,
-            username,
-            nombre,
-            email,
-            password,
-            rol
-        });
-        
-        alert(`Usuario ${nombre} creado exitosamente en Firebase`);
-        cancelarNuevoUsuario();
-        
-        // Recargar panel
-        setTimeout(() => {
-            cerrarPanelAdmin();
-            mostrarPanelAdministrador();
-        }, 500);
-        
-    } catch (error) {
-        alert('Error creando usuario: ' + error.message);
-    }
-}
-
-async function editarUsuario(userId) {
-    const nuevoNombre = prompt('Nuevo nombre:');
-    const nuevoEmail = prompt('Nuevo email:');
-    const nuevaPassword = prompt('Nueva contraseña (dejar vacío para no cambiar):');
-    
-    if (nuevoNombre && nuevoEmail) {
-        try {
-            const cambios = { nombre: nuevoNombre, email: nuevoEmail };
-            if (nuevaPassword) {
-                cambios.password = nuevaPassword;
+                    request.onerror = () => {
+                        console.error('Error al obtener reportes:', request.error);
+                        reject(request.error);
+                    };
+                });
             }
-            
-            await sistemaAuth.actualizarUsuario(userId, cambios);
-            alert('Usuario actualizado exitosamente en Firebase');
-            
-            // Recargar panel
-            setTimeout(() => {
-                cerrarPanelAdmin();
-                mostrarPanelAdministrador();
-            }, 500);
-        } catch (error) {
-            alert('Error actualizando usuario: ' + error.message);
-        }
-    }
-}
 
-async function toggleUsuario(userId) {
-    try {
-        const usuarios = await sistemaAuth.listarUsuarios();
-        const usuario = usuarios[userId];
-        
-        if (!usuario) {
-            alert('Usuario no encontrado');
-            return;
-        }
-        
-        if (confirm(`¿${usuario.activo ? 'Desactivar' : 'Activar'} usuario ${usuario.nombre}?`)) {
-            await sistemaAuth.actualizarUsuario(userId, { activo: !usuario.activo });
-            alert(`Usuario ${usuario.activo ? 'desactivado' : 'activado'} exitosamente en Firebase`);
-            
-            // Recargar panel
-            setTimeout(() => {
-                cerrarPanelAdmin();
-                mostrarPanelAdministrador();
-            }, 500);
-        }
-    } catch (error) {
-        alert('Error modificando usuario: ' + error.message);
-    }
-}
+            async obtenerTodosLosReportesSinFiltrar() {
+                if (!this.db) throw new Error('Base de datos no inicializada');
 
-function filtrarReportesAdmin() {
-    // Esta función se ejecuta desde el HTML cuando cambian los filtros
-    console.log('🎯 Función global filtrarReportesAdmin llamada');
-    if (window.panelAdmin) {
-        console.log('✅ Panel admin encontrado, ejecutando filtro...');
-        window.panelAdmin.filtrarReportesAdmin();
-    } else {
-        console.error('❌ Panel de administrador no está inicializado');
-        console.log('🔍 Intentando inicializar panel admin...');
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.getAll();
 
-        // Intentar encontrar y usar el panel
-        if (typeof PanelAdministrador !== 'undefined') {
-            window.panelAdmin = new PanelAdministrador();
-            if (window.reportesDB) {
-                window.reportesDB.obtenerTodosLosReportesSinFiltrar().then(reportes => {
-                    window.panelAdmin.reportes = reportes;
-                    window.panelAdmin.usuarios = sistemaAuth.obtenerUsuarios();
-                    window.panelAdmin.filtrarReportesAdmin();
+                    request.onsuccess = () => {
+                        resolve(request.result);
+                    };
+
+                    request.onerror = () => {
+                        console.error('Error al obtener reportes:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async obtenerReportePorId(id) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.get(id);
+
+                    request.onsuccess = () => {
+                        resolve(request.result);
+                    };
+
+                    request.onerror = () => {
+                        console.error('Error al obtener reporte:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async actualizarReporte(id, reporte) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readwrite');
+                    const store = transaction.objectStore('reportes');
+
+                    // Asegurar que el reporte tiene el ID correcto
+                    reporte.id = id;
+
+                    const request = store.put(reporte);
+
+                    request.onsuccess = () => {
+                        console.log('Reporte actualizado:', id);
+                        resolve(id);
+                    };
+
+                    request.onerror = () => {
+                        console.error('Error al actualizar reporte:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async eliminarReporte(id) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readwrite');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.delete(id);
+                    
+                    request.onsuccess = () => {
+                        console.log('Reporte eliminado:', id);
+                        resolve();
+                    };
+                    
+                    request.onerror = () => {
+                        console.error('Error al eliminar reporte:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async eliminarTodosLosReportes() {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readwrite');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.clear();
+                    
+                    request.onsuccess = () => {
+                        console.log('Todos los reportes eliminados');
+                        resolve();
+                    };
+                    
+                    request.onerror = () => {
+                        console.error('Error al eliminar todos los reportes:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async buscarReportes(termino, gerencia = null) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    
+                    let resultados = [];
+                    const request = store.openCursor();
+                    
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            const reporte = cursor.value;
+                            let coincide = true;
+                            
+                            // Filtro por término de búsqueda
+                            if (termino) {
+                                const textoCompleto = `${reporte.colegio} ${reporte.nombreContacto} ${reporte.zona}`.toLowerCase();
+                                coincide = coincide && textoCompleto.includes(termino.toLowerCase());
+                            }
+                            
+                            // Filtro por gerencia
+                            if (gerencia) {
+                                coincide = coincide && reporte.gerencia === gerencia;
+                            }
+                            
+                            if (coincide) {
+                                resultados.push(reporte);
+                            }
+                            
+                            cursor.continue();
+                        } else {
+                            resolve(resultados);
+                        }
+                    };
+                    
+                    request.onerror = () => {
+                        console.error('Error en búsqueda:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async obtenerColegiosUnicos() {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    const index = store.index('colegio');
+                    
+                    const colegios = new Set();
+                    const request = index.openCursor();
+                    
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            if (cursor.value.colegio && cursor.value.colegio.trim()) {
+                                colegios.add(cursor.value.colegio.trim());
+                            }
+                            cursor.continue();
+                        } else {
+                            resolve(Array.from(colegios));
+                        }
+                    };
+                    
+                    request.onerror = () => {
+                        console.error('Error al obtener colegios:', request.error);
+                        reject(request.error);
+                    };
+                });
+            }
+
+            async verificarDuplicado(colegio, fecha) {
+                if (!this.db) throw new Error('Base de datos no inicializada');
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['reportes'], 'readonly');
+                    const store = transaction.objectStore('reportes');
+                    const request = store.openCursor();
+                    
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            const reporte = cursor.value;
+                            if (reporte.colegio.trim().toLowerCase() === colegio.trim().toLowerCase() && 
+                                reporte.fecha === fecha) {
+                                resolve(true); // Duplicado encontrado
+                                return;
+                            }
+                            cursor.continue();
+                        } else {
+                            resolve(false); // No hay duplicado
+                        }
+                    };
+                    
+                    request.onerror = () => {
+                        console.error('Error al verificar duplicado:', request.error);
+                        reject(request.error);
+                    };
                 });
             }
         }
-    }
-}
 
-async function sincronizarUsuariosGitHub() {
-    const boton = event.target;
-    const textoOriginal = boton.textContent;
-    
-    console.log('📤 === INICIO BACKUP USUARIOS A GITHUB ===');
-    
-    try {
-        boton.textContent = '⏳ Iniciando...';
-        boton.disabled = true;
-        
-        // Verificar que githubSync esté disponible
-        if (!window.githubSync) {
-            console.log('🔧 Intentando inicializar githubSync...');
-            // Usar la función global para asegurar GitHubSync
-            if (window.asegurarGitHubSync && window.asegurarGitHubSync()) {
-                console.log('✅ githubSync inicializado exitosamente');
-            } else {
-                alert('❌ Sistema de GitHub no disponible. Recarga la página y asegúrate de tener configuración válida.');
-                boton.textContent = textoOriginal;
-                boton.disabled = false;
-                return;
+        // ====================== VARIABLES GLOBALES ======================
+        const reportesDB = new ReportesDB();
+        let reporteActual = null;
+        let borradoresOriginales = [];
+        let borradoresFiltrados = [];
+
+        // Zonas por gerencia - Estructura organizacional completa
+        const zonasPorGerencia = {
+            'Bajío': [
+                'Celaya', 'Irapuato', 'León I', 'León II', 'Morelia I', 'Morelia II', 
+                'Querétaro I', 'Querétaro II', 'San Luis Potosí I', 'San Luis Potosí II'
+            ],
+            'Centro-Norte': [
+                'Atizapán', 'Cuautitlán', 'Ecatepec', 'Gustavo A. Madero', 'Naucalpan', 
+                'Neza', 'Tlalnepantla', 'Toluca', 'Tultitlán', 'Xochimilco'
+            ],
+            'Centro-Sur': [
+                'Acapulco', 'Álvaro Obregón', 'Azcapotzalco', 'Coyoacán', 'Cuautla', 
+                'Cuernavaca', 'Iztapalapa I', 'Iztapalapa II', 'Miguel Hidalgo', 'Tlalpan'
+            ],
+            'Norte': [
+                'Chihuahua', 'Cd. Juárez', 'Durango', 'Monterrey I', 'Monterrey II', 
+                'Monterrey III', 'Monterrey IV', 'Reynosa', 'Saltillo', 'Tampico', 'Torreón'
+            ],
+            'Occidente': [
+                'Aguascalientes', 'Colima', 'Guadalajara I', 'Guadalajara II', 'Tepic', 
+                'Tlajomulco', 'Tlaquepaque', 'Zapopan I', 'Zapopan II'
+            ],
+            'Oriente': [
+                'Chalco', 'Oaxaca I', 'Oaxaca II', 'Pachuca', 'Puebla I', 'Puebla II', 
+                'Puebla III', 'Texcoco', 'Tulancingo'
+            ],
+            'Pacífico': [
+                'Cd. Obregón', 'Culiacán', 'Hermosillo I', 'Hermosillo II', 'Los Cabos', 
+                'Mazatlán', 'Mexicali', 'Tijuana I', 'Tijuana II'
+            ],
+            'Sur': [
+                'Cancún', 'Córdoba', 'Mérida I', 'Mérida II', 'Playa del Carmen', 'Poza Rica', 
+                'Tapachula', 'Tuxtla', 'Veracruz I', 'Veracruz II', 'Villahermosa I', 'Villahermosa II'
+            ]
+        };
+
+        // ====================== PREVENCIÓN PULL-TO-REFRESH ======================
+
+        // Prevenir pull-to-refresh accidental en móviles
+        let startY = 0;
+        let isRefreshPrevented = false;
+
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].pageY;
+            isRefreshPrevented = false;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', function(e) {
+            const currentY = e.touches[0].pageY;
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+
+            // Si estamos en el tope de la página y el usuario desliza hacia abajo
+            if (scrollTop === 0 && currentY > startY && !isRefreshPrevented) {
+                // Solo prevenir si el movimiento es significativo (más de 50px)
+                if (currentY - startY > 50) {
+                    e.preventDefault();
+                    isRefreshPrevented = true;
+                    console.log('🚫 Pull-to-refresh prevenido');
+
+                    // Mostrar mensaje temporal
+                    mostrarMensaje('⚠️ Desliza menos para evitar refrescar accidentalmente', 'warning');
+                    setTimeout(() => {
+                        const messageDiv = document.getElementById('messages');
+                        if (messageDiv) messageDiv.innerHTML = '';
+                    }, 2000);
+                }
             }
-        }
-        
-        // Verificar configuración de GitHub
-        if (!validarConfiguracionGitHub(window.githubSync.config)) {
-            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
-            boton.textContent = textoOriginal;
-            boton.disabled = false;
-            return;
-        }
-        
-        // Verificar usuarios locales
-        console.log('👥 Verificando usuarios locales...');
-        const usuariosLocales = sistemaAuth.obtenerUsuarios() || {};
-        console.log('📊 Usuarios locales encontrados:', Object.keys(usuariosLocales));
-        
-        if (Object.keys(usuariosLocales).length === 0) {
-            alert('⚠️ No hay usuarios locales. Usa "Restaurar Usuarios Base" primero.');
-            boton.textContent = textoOriginal;
-            boton.disabled = false;
-            return;
-        }
-        
-        // Hacer backup a GitHub
-        boton.textContent = '📤 Subiendo a GitHub...';
-        console.log('🌐 Haciendo backup de usuarios a GitHub...');
-        
-        const resultado = await window.githubSync.sincronizarUsuarios();
-        
-        if (resultado.exito) {
-            console.log('✅ Backup exitoso:', resultado);
-            alert(`✅ Backup completado: ${resultado.cantidad} usuarios subidos a GitHub`);
-            if (window.panelAdmin) {
-                window.panelAdmin.cargarUsuarios();
-            }
-        } else {
-            throw new Error(resultado.error || 'Error desconocido');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error en sincronización:', error);
-        alert(`❌ Error sincronizando con GitHub: ${error.message}`);
-        
-    } finally {
-        console.log('🏁 === FIN BACKUP USUARIOS ===');
-        boton.textContent = textoOriginal;
-        boton.disabled = false;
-    }
-}
+        }, { passive: false });
 
-async function restaurarUsuariosGitHub() {
-    if (!confirm('⚠️ ¿Estás seguro de que quieres RESTAURAR usuarios desde GitHub?\n\nEsto SOBRESCRIBIRÁ todos los usuarios locales con los datos de GitHub.')) {
-        return;
-    }
+        // ====================== FUNCIONES DE INICIALIZACIÓN ======================
 
-    const boton = event.target;
-    const textoOriginal = boton.textContent;
-    
-    console.log('📥 === INICIO RESTORE USUARIOS DESDE GITHUB ===');
-    
-    try {
-        boton.textContent = '⏳ Descargando...';
-        boton.disabled = true;
+        // Inicializar reportesDB globalmente
+        window.reportesDB = reportesDB;
+
         
-        // Verificar que githubSync esté disponible
-        if (!window.githubSync) {
-            console.log('🔧 Intentando inicializar githubSync...');
-            if (window.asegurarGitHubSync && window.asegurarGitHubSync()) {
-                console.log('✅ githubSync inicializado exitosamente');
-            } else {
-                alert('❌ Sistema de GitHub no disponible. Recarga la página.');
-                return;
-            }
-        }
-        
-        // Verificar configuración de GitHub
-        if (!validarConfiguracionGitHub(window.githubSync.config)) {
-            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
-            return;
-        }
-        
-        // Restaurar usuarios desde GitHub
-        boton.textContent = '📥 Descargando desde GitHub...';
-        console.log('🌐 Restaurando usuarios desde GitHub...');
-        
-        const resultado = await window.githubSync.descargarUsuarios();
-        
-        if (resultado.exito) {
-            console.log('✅ Restore exitoso:', resultado);
-            alert(`✅ Restore completado: ${resultado.cantidad} usuarios descargados desde GitHub`);
-            
-            // Recargar panel para mostrar usuarios restaurados
-            setTimeout(() => {
-                window.location.reload(); // Recargar toda la página para reinicializar el sistema
-            }, 1000);
-        } else {
-            throw new Error(resultado.error || 'Error desconocido');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error en restore:', error);
-        alert(`❌ Error restaurando desde GitHub: ${error.message}`);
-        
-    } finally {
-        console.log('🏁 === FIN RESTORE USUARIOS ===');
-        boton.textContent = textoOriginal;
-        boton.disabled = false;
-    }
-}
-
-async function restaurarUsuariosBase() {
-    if (confirm('¿Restaurar usuarios base (admin, hpineda, fvillarreal, gdelaparra, aaguilar)? Esto NO eliminará usuarios existentes, solo agregará los que falten.')) {
-        try {
-            const usuariosRestaurados = sistemaAuth.restaurarUsuariosBase();
-            alert(`✅ Usuarios base restaurados. Total: ${Object.keys(usuariosRestaurados).length} usuarios disponibles.`);
-            
-            // Recargar panel
-            setTimeout(() => {
-                cerrarPanelAdmin();
-                mostrarPanelAdministrador();
-            }, 500);
-            
-        } catch (error) {
-            alert('❌ Error restaurando usuarios: ' + error.message);
-            console.error('Error:', error);
-        }
-    }
-}
-
-// ============== FUNCIONES ADICIONALES PARA EL PANEL ==============
-
-function mostrarFormularioNuevoUsuario() {
-    const formulario = document.getElementById('formularioNuevoUsuario');
-    formulario.style.display = formulario.style.display === 'none' ? 'block' : 'none';
-}
-
-function cancelarNuevoUsuario() {
-    document.getElementById('formularioNuevoUsuario').style.display = 'none';
-    // Limpiar formulario
-    document.getElementById('nuevoUsername').value = '';
-    document.getElementById('nuevoNombre').value = '';
-    document.getElementById('nuevoEmail').value = '';
-    document.getElementById('nuevoPassword').value = '';
-    document.getElementById('nuevoRol').value = 'usuario';
-}
-
-async function crearNuevoUsuario() {
-    const username = document.getElementById('nuevoUsername').value.trim();
-    const nombre = document.getElementById('nuevoNombre').value.trim();
-    const email = document.getElementById('nuevoEmail').value.trim();
-    const password = document.getElementById('nuevoPassword').value;
-    const rol = document.getElementById('nuevoRol').value;
-
-    if (!username || !nombre || !email || !password) {
-        alert('Por favor completa todos los campos');
-        return;
-    }
-
-    if (password.length < 6) {
-        alert('La contraseña debe tener al menos 6 caracteres');
-        return;
-    }
-
-    try {
-        const nuevoUsuario = sistemaAuth.crearUsuario({
-            username,
-            nombre,
-            email,
-            password,
-            rol
-        });
-
-        alert(`✅ Usuario "${nuevoUsuario.nombre}" creado exitosamente`);
-        cancelarNuevoUsuario();
-        if (window.panelAdmin) {
-            window.panelAdmin.cargarUsuarios();
-        }
-    } catch (error) {
-        alert('❌ Error creando usuario: ' + error.message);
-    }
-}
-
-function editarUsuario(userId) {
-    try {
-        const usuarios = sistemaAuth.obtenerUsuarios();
-        const usuario = usuarios[userId];
-        
-        if (!usuario) {
-            alert('Usuario no encontrado');
-            return;
-        }
-
-        // Crear modal de edición
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10002';
-        
-        modal.innerHTML = `
-            <div style="background:white;padding:30px;border-radius:10px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
-                <h2 style="margin-bottom:20px;color:#2c3e50">✏️ Editar Usuario</h2>
-                <form id="editarUsuarioForm">
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">ID de Usuario:</label>
-                        <input type="text" id="editUserId" value="${usuario.id}" 
-                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background:#f5f5f5" readonly>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">Nombre Completo:</label>
-                        <input type="text" id="editUserName" value="${usuario.nombre}" 
-                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px" required>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">Correo Electrónico:</label>
-                        <input type="email" id="editUserEmail" value="${usuario.email}" 
-                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px" required>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">Nueva Contraseña:</label>
-                        <input type="password" id="editUserPassword" placeholder="Dejar vacío para mantener la actual" 
-                               style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
-                        <small style="color:#666;font-size:12px">Mínimo 6 caracteres si deseas cambiarla</small>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">Rol:</label>
-                        <select id="editUserRole" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
-                            <option value="usuario" ${usuario.rol === 'usuario' ? 'selected' : ''}>Usuario</option>
-                            <option value="administrador" ${usuario.rol === 'administrador' ? 'selected' : ''}>Administrador</option>
-                        </select>
-                    </div>
-                    <div style="margin-bottom:15px">
-                        <label style="display:flex;align-items:center;gap:8px;font-weight:600">
-                            <input type="checkbox" id="editUserActive" ${usuario.activo ? 'checked' : ''}>
-                            Usuario Activo
-                        </label>
-                    </div>
-                    
-                    <div style="border-top:1px solid #eee;padding-top:15px;margin-top:15px">
-                        <small style="color:#666">
-                            <strong>Creado:</strong> ${new Date(usuario.fechaCreacion).toLocaleString()}<br>
-                            ${usuario.ultimoAcceso ? `<strong>Último acceso:</strong> ${new Date(usuario.ultimoAcceso).toLocaleString()}<br>` : ''}
-                            ${usuario.creadoPor ? `<strong>Creado por:</strong> ${usuario.creadoPor}<br>` : ''}
-                        </small>
-                    </div>
-                    
-                    <div style="display:flex;gap:10px;margin-top:20px">
-                        <button type="submit" class="btn-admin btn-success" style="background:#27ae60;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer">
-                            💾 Guardar Cambios
-                        </button>
-                        <button type="button" onclick="this.closest('.modal-overlay').remove()" 
-                                class="btn-admin btn-secondary" style="background:#95a5a6;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer">
-                            ❌ Cancelar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        
-        // Manejar envío del formulario
-        document.getElementById('editarUsuarioForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const nombre = document.getElementById('editUserName').value.trim();
-            const email = document.getElementById('editUserEmail').value.trim();
-            const password = document.getElementById('editUserPassword').value;
-            const rol = document.getElementById('editUserRole').value;
-            const activo = document.getElementById('editUserActive').checked;
-            
-            if (!nombre || !email) {
-                alert('Nombre y email son obligatorios');
-                return;
-            }
-            
-            if (password && password.length < 6) {
-                alert('La contraseña debe tener al menos 6 caracteres');
-                return;
-            }
-            
+        // La inicialización ahora se maneja desde auth.js después del login exitoso
+        // Esta función se llama solo cuando el usuario está autenticado
+        async function inicializarSistema() {
             try {
-                const cambios = {
-                    nombre,
-                    email,
-                    activo
-                };
+                mostrarMensaje('⏳ Inicializando sistema...', 'warning');
+                await reportesDB.init();
+                await cargarBorradores();
+                await cargarAutocompletadoColegios();
+                document.getElementById('fecha').valueAsDate = new Date();
+                document.getElementById('colegio').focus();
+                mostrarMensaje('✅ Sistema iniciado correctamente', 'success');
+            } catch (error) {
+                console.error('Error al inicializar:', error);
+                mostrarMensaje('❌ Error al inicializar el sistema. Recarga la página.', 'error');
+            }
+        }
+
+        // ====================== FUNCIONES DE INTERFAZ ======================
+        function actualizarZonas() {
+            const gerenciaSelect = document.getElementById('gerencia');
+            const zonaSelect = document.getElementById('zona');
+            const gerenciaSeleccionada = gerenciaSelect.value;
+            
+            zonaSelect.innerHTML = '';
+            
+            if (gerenciaSeleccionada) {
+                zonaSelect.innerHTML = '<option value="">Seleccionar zona</option>';
+                const zonas = zonasPorGerencia[gerenciaSeleccionada] || [];
+                zonas.forEach(zona => {
+                    const option = document.createElement('option');
+                    option.value = zona;
+                    option.textContent = zona;
+                    zonaSelect.appendChild(option);
+                });
+            } else {
+                zonaSelect.innerHTML = '<option value="">Primero selecciona una gerencia</option>';
+            }
+        }
+
+        function mostrarCampoOtroObjetivo() {
+            const objetivoSelect = document.getElementById('objetivo');
+            const otroContainer = document.getElementById('otroObjetivoContainer');
+            const otroInput = document.getElementById('otroObjetivo');
+            
+            if (objetivoSelect.value === 'Otro') {
+                otroContainer.style.display = 'block';
+                otroInput.required = true;
+            } else {
+                otroContainer.style.display = 'none';
+                otroInput.required = false;
+                otroInput.value = '';
+            }
+        }
+
+        function formatearTelefono(input) {
+            let valor = input.value.replace(/\D/g, '');
+            
+            if (valor.length === 10) {
+                input.value = valor.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+            } else if (valor.length === 0) {
+                input.value = '';
+            }
+        }
+
+        function validarTelefono(telefono) {
+            const soloNumeros = telefono.replace(/\D/g, '');
+            return soloNumeros.length === 10;
+        }
+
+        function mostrarMensaje(texto, tipo = 'success') {
+            const messagesDiv = document.getElementById('messages');
+            const mensaje = document.createElement('div');
+            mensaje.className = `message ${tipo}`;
+            mensaje.textContent = texto;
+            mensaje.style.display = 'block';
+            
+            messagesDiv.innerHTML = '';
+            messagesDiv.appendChild(mensaje);
+            
+            setTimeout(() => {
+                mensaje.style.display = 'none';
+            }, 3000);
+        }
+
+        function limpiarVistaPrevia() {
+            document.getElementById('reportePreview').style.display = 'none';
+            document.getElementById('reporteContent').innerHTML = '';
+            reporteActual = null;
+        }
+
+        // ====================== FUNCIONES DE AUTOCOMPLETADO ======================
+        async function cargarAutocompletadoColegios() {
+            try {
+                const colegiosUnicos = await reportesDB.obtenerColegiosUnicos();
+                const datalist = document.getElementById('colegiosDatalist');
+                datalist.innerHTML = '';
                 
-                // Solo incluir password si se proporcionó uno nuevo
-                if (password) {
-                    cambios.password = password;
+                colegiosUnicos.forEach(colegio => {
+                    const option = document.createElement('option');
+                    option.value = colegio;
+                    datalist.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar autocompletado:', error);
+            }
+        }
+
+        // ====================== FUNCIONES PRINCIPALES ======================
+        async function generarReporte() {
+            const form = document.getElementById('visitaForm');
+            const formData = new FormData(form);
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                mostrarMensaje('⚠️ Por favor completa todos los campos requeridos', 'warning');
+                return;
+            }
+
+            const telefono = formData.get('telefonoContacto');
+            if (!validarTelefono(telefono)) {
+                mostrarMensaje('⚠️ El teléfono debe tener exactamente 10 dígitos', 'warning');
+                document.getElementById('telefonoContacto').focus();
+                return;
+            }
+            
+            const fechaInput = formData.get('fecha');
+            // Corregir problema de timezone agregando la hora del mediodía
+            const fechaCorregida = fechaInput + 'T12:00:00';
+            const fechaFormateada = new Date(fechaCorregida).toLocaleDateString('es-MX', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            let objetivoFinal = formData.get('objetivo');
+            if (objetivoFinal === 'Otro') {
+                objetivoFinal = formData.get('otroObjetivo') || 'Otro';
+            }
+            
+            reporteActual = {
+                colegio: formData.get('colegio'),
+                esUsuario: formData.get('esUsuario'),
+                detalleUsuario: document.getElementById('detalleUsuarioInput').value,
+                detalleCompetencia: document.getElementById('detalleCompetenciaInput').value,
+                gerencia: formData.get('gerencia'),
+                zona: formData.get('zona'),
+                fecha: fecha,
+                fechaFormateada: fechaFormateada,
+                objetivo: objetivoFinal,
+                nombreContacto: formData.get('nombreContacto'),
+                cargoContacto: formData.get('cargoContacto'),
+                telefonoContacto: formData.get('telefonoContacto'),
+                correoContacto: formData.get('correoContacto'),
+                productos: formData.get('productos'),
+                notas: formData.get('notas'),
+                compromisos: formData.get('compromisos'),
+                huboQuejas: document.getElementById('huboQuejas').checked,
+                categoriaQueja: document.getElementById('categoriaQueja').value,
+                detalleQuejaTexto: document.getElementById('detalleQuejaTexto').value
+            };
+            
+            const reporte = `
+<h2 style="margin-bottom: 10px;">📋 Reporte de Visita</h2>
+<p><strong>Editorial:</strong> University of Dayton Publishing</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Información General</h3>
+<p><strong>Institución:</strong> ${reporteActual.colegio}</p>
+<p><strong>¿Es usuario?:</strong> ${reporteActual.esUsuario || 'No especificado'}</p>
+${reporteActual.esUsuario === 'Sí' && reporteActual.detalleUsuario ? 
+  `<p><strong>Producto/línea que utiliza:</strong> ${reporteActual.detalleUsuario}</p>` : ''}
+${reporteActual.esUsuario === 'No' && reporteActual.detalleCompetencia ? 
+  `<p><strong>Competencia que utiliza:</strong> ${reporteActual.detalleCompetencia}</p>` : ''}
+<p><strong>Gerencia:</strong> ${reporteActual.gerencia}</p>
+<p><strong>Zona Comercial:</strong> ${reporteActual.zona}</p>
+<p><strong>Fecha de Visita:</strong> ${reporteActual.fechaFormateada}</p>
+<p><strong>Objetivo:</strong> ${reporteActual.objetivo}</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Contacto</h3>
+<p><strong>Nombre:</strong> ${reporteActual.nombreContacto}</p>
+<p><strong>Cargo:</strong> ${reporteActual.cargoContacto}</p>
+<p><strong>Teléfono:</strong> ${reporteActual.telefonoContacto}</p>
+<p><strong>Correo:</strong> ${reporteActual.correoContacto}</p>
+
+<hr style="margin: 20px 0;">
+
+<h3>Productos/Servicios Presentados</h3>
+<p>${reporteActual.productos.replace(/\n/g, '<br>')}</p>
+
+<h3>Notas Relevantes</h3>
+<p>${reporteActual.notas.replace(/\n/g, '<br>')}</p>
+
+<h3>Compromisos y Siguientes Pasos</h3>
+<p>${reporteActual.compromisos.replace(/\n/g, '<br>')}</p>
+
+${reporteActual.huboQuejas ? `
+<hr style="margin: 20px 0;">
+<h3>Comentarios y Áreas de Mejora</h3>
+<p><strong>Categoría:</strong> ${reporteActual.categoriaQueja || 'No especificada'}</p>
+<p><strong>Detalle:</strong> ${reporteActual.detalleQuejaTexto.replace(/\n/g, '<br>') || 'No especificado'}</p>
+` : ''}
+
+<hr style="margin: 20px 0;">
+<p><em>Reporte generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}</em></p>
+            `;
+            
+            document.getElementById('reporteContent').innerHTML = reporte;
+            document.getElementById('reportePreview').style.display = 'block';
+            document.getElementById('reportePreview').scrollIntoView({ behavior: 'smooth' });
+            
+            mostrarMensaje('✅ Reporte generado exitosamente');
+        }
+
+        async function guardarReporte() {
+            const form = document.getElementById('visitaForm');
+            const formData = new FormData(form);
+
+            if (!formData.get('colegio') || formData.get('colegio').trim() === '') {
+                mostrarMensaje('⚠️ Ingresa al menos el nombre del colegio para guardar', 'warning');
+                return;
+            }
+
+            const telefono = formData.get('telefonoContacto');
+            if (telefono && telefono.trim() && !validarTelefono(telefono)) {
+                mostrarMensaje('⚠️ El teléfono debe tener exactamente 10 dígitos', 'warning');
+                document.getElementById('telefonoContacto').focus();
+                return;
+            }
+        
+            const colegio = formData.get('colegio').trim();
+            const fecha = formData.get('fecha');
+
+            try {
+                const duplicado = await reportesDB.verificarDuplicado(colegio, fecha);
+                if (duplicado) {
+                    mostrarMensaje('⚠️ Ya existe un borrador con esta institución y fecha', 'warning');
+                    return;
+                }
+
+                let objetivoFinal = formData.get('objetivo');
+                if (objetivoFinal === 'Otro') {
+                    objetivoFinal = formData.get('otroObjetivo') || 'Otro';
                 }
                 
-                // Solo cambiar rol si el usuario actual es admin y no se está editando a sí mismo
-                const usuarioActual = sistemaAuth.obtenerSesionActual();
-                if (usuarioActual.id !== userId) {
-                    cambios.rol = rol;
-                } else if (rol !== usuario.rol) {
-                    alert('⚠️ No puedes cambiar tu propio rol');
+                const reporte = {
+                    id: Date.now() + Math.random().toString(36).substr(2, 9),
+                    colegio: formData.get('colegio'),
+                    esUsuario: formData.get('esUsuario'),
+                    detalleUsuario: document.getElementById('detalleUsuarioInput').value,
+                    detalleCompetencia: document.getElementById('detalleCompetenciaInput').value,
+                    gerencia: formData.get('gerencia'),
+                    zona: formData.get('zona'),
+                    fecha: formData.get('fecha'),
+                    objetivo: objetivoFinal,
+                    otroObjetivo: formData.get('otroObjetivo'),
+                    nombreContacto: formData.get('nombreContacto'),
+                    cargoContacto: formData.get('cargoContacto'),
+                    telefonoContacto: formData.get('telefonoContacto'),
+                    correoContacto: formData.get('correoContacto'),
+                    productos: formData.get('productos'),
+                    notas: formData.get('notas'),
+                    compromisos: formData.get('compromisos'),
+                    huboQuejas: document.getElementById('huboQuejas').checked,
+                    categoriaQueja: document.getElementById('categoriaQueja').value,
+                    detalleQuejaTexto: document.getElementById('detalleQuejaTexto').value,
+                    fechaGuardado: new Date().toISOString(),
+                    usuario: window.usuarioActual?.id || 'anonimo',
+                    usuarioId: window.usuarioActual?.id || 'anonimo',
+                    creadoPor: window.usuarioActual?.nombre || 'Usuario desconocido',
+                    autorRol: window.usuarioActual?.rol || 'usuario'
+                };
+                
+                await reportesDB.guardarReporte(reporte);
+
+                mostrarMensaje('💾 Borrador guardado exitosamente');
+                await cargarBorradores();
+                await cargarAutocompletadoColegios();
+                
+            } catch (error) {
+                console.error('Error al guardar reporte:', error);
+                mostrarMensaje('❌ Error al guardar el reporte. Intenta nuevamente.', 'error');
+            }
+        }
+
+        // ====================== FUNCIONES DE BORRADORES ======================
+        async function cargarBorradores() {
+            try {
+                const borradores = await reportesDB.obtenerTodosLosReportes();
+                borradoresOriginales = [...borradores];
+                const savedReports = document.getElementById('savedReports');
+                
+                if (borradores.length === 0) {
+                    savedReports.style.display = 'none';
                     return;
                 }
                 
-                const usuarioActualizado = sistemaAuth.actualizarUsuario(userId, cambios);
+                savedReports.style.display = 'block';
+                mostrarBorradoresFiltrados(borradores);
+            } catch (error) {
+                console.error('Error al cargar borradores:', error);
+                mostrarMensaje('❌ Error al cargar los borradores guardados', 'error');
+            }
+        }
+
+        async function cargarBorrador(id) {
+            try {
+                const borrador = await reportesDB.obtenerReportePorId(id);
                 
-                alert(`✅ Usuario "${usuarioActualizado.nombre}" actualizado exitosamente`);
-                modal.remove();
-                
-                if (window.panelAdmin) {
-                    window.panelAdmin.cargarUsuarios();
+                if (borrador) {
+                    document.getElementById('colegio').value = borrador.colegio;
+                    document.getElementById('gerencia').value = borrador.gerencia;
+                    actualizarZonas();
+                    setTimeout(() => {
+                        document.getElementById('zona').value = borrador.zona;
+                    }, 100);
+                    document.getElementById('fecha').value = borrador.fecha;
+                    
+                    if (borrador.otroObjetivo) {
+                        document.getElementById('objetivo').value = 'Otro';
+                        mostrarCampoOtroObjetivo();
+                        document.getElementById('otroObjetivo').value = borrador.otroObjetivo;
+                    } else {
+                        document.getElementById('objetivo').value = borrador.objetivo;
+                        mostrarCampoOtroObjetivo();
+                    }
+                    
+                    if (borrador.esUsuario) {
+                        if (borrador.esUsuario === 'Sí') {
+                            document.getElementById('usuario_si').checked = true;
+                            document.getElementById('detalleUsuario').style.display = 'block';
+                            document.getElementById('detalleUsuarioInput').value = borrador.detalleUsuario || '';
+                            document.getElementById('detalleCompetencia').style.display = 'none';
+                        } else if (borrador.esUsuario === 'No') {
+                            document.getElementById('usuario_no').checked = true;
+                            document.getElementById('detalleCompetencia').style.display = 'block';
+                            document.getElementById('detalleCompetenciaInput').value = borrador.detalleCompetencia || '';
+                            document.getElementById('detalleUsuario').style.display = 'none';
+                        }
+                    }
+
+                    document.getElementById('nombreContacto').value = borrador.nombreContacto || '';
+                    document.getElementById('cargoContacto').value = borrador.cargoContacto || '';
+                    document.getElementById('telefonoContacto').value = borrador.telefonoContacto || '';
+                    document.getElementById('correoContacto').value = borrador.correoContacto || '';
+                    document.getElementById('productos').value = borrador.productos || '';
+                    document.getElementById('notas').value = borrador.notas || '';
+                    document.getElementById('compromisos').value = borrador.compromisos || '';
+
+                    if (borrador.huboQuejas) {
+                        document.getElementById('huboQuejas').checked = true;
+                        document.getElementById('detalleQuejas').style.display = 'block';
+                        document.getElementById('categoriaQueja').value = borrador.categoriaQueja || '';
+                        document.getElementById('detalleQuejaTexto').value = borrador.detalleQuejaTexto || '';
+                    } else {
+                        document.getElementById('huboQuejas').checked = false;
+                        document.getElementById('detalleQuejas').style.display = 'none';
+                    }
+                    
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('gerenciaFilter').value = '';
+                    
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    mostrarMensaje('📝 Borrador cargado para edición');
+                }
+            } catch (error) {
+                console.error('Error al cargar borrador:', error);
+                mostrarMensaje('❌ Error al cargar el borrador', 'error');
+            }
+        }
+
+        async function eliminarBorrador(id) {
+            if (confirm('¿Estás seguro de eliminar este borrador?\n\nEsta acción es PERMANENTE y también lo eliminará de GitHub si está sincronizado.')) {
+                try {
+                    // Eliminar localmente
+                    await reportesDB.eliminarReporte(id);
+
+                    // Si hay conexión y configuración de GitHub, también eliminar de GitHub
+                    if (navigator.onLine && window.githubSync && validarConfiguracionGitHub(window.githubSync.config)) {
+                        try {
+                            // Obtener todos los reportes restantes después de la eliminación
+                            const reportesRestantes = await reportesDB.obtenerTodosLosReportes();
+
+                            // Sincronizar con GitHub (sobrescribir con los reportes restantes)
+                            await window.githubSync.sincronizarReportesConEliminacion(reportesRestantes);
+                            mostrarMensaje('🗑️ Borrador eliminado localmente y de GitHub');
+                        } catch (error) {
+                            console.error('Error al eliminar de GitHub:', error);
+                            mostrarMensaje('⚠️ Borrador eliminado localmente pero no se pudo sincronizar con GitHub', 'warning');
+                        }
+                    } else {
+                        mostrarMensaje('🗑️ Borrador eliminado localmente');
+                    }
+
+                    await cargarBorradores();
+                    await cargarAutocompletadoColegios();
+                    await actualizarEstadoSincronizacion();
+                } catch (error) {
+                    console.error('Error al eliminar borrador:', error);
+                    mostrarMensaje('❌ Error al eliminar el borrador', 'error');
+                }
+            }
+        }
+
+        async function eliminarTodosBorradores() {
+            try {
+                const borradores = await reportesDB.obtenerTodosLosReportes();
+                if (borradores.length === 0) {
+                    mostrarMensaje('⚠️ No hay borradores para eliminar', 'warning');
+                    return;
                 }
                 
+                if (confirm(`¿Estás seguro de eliminar TODOS los borradores guardados? (${borradores.length} borradores)\n\nEsta acción no se puede deshacer.`)) {
+                    await reportesDB.eliminarTodosLosReportes();
+                    await cargarBorradores();
+                    await cargarAutocompletadoColegios();
+                    document.getElementById('searchInput').value = '';
+                    document.getElementById('gerenciaFilter').value = '';
+                    mostrarMensaje('🗑️ Todos los borradores han sido eliminados');
+                }
             } catch (error) {
-                alert('❌ Error actualizando usuario: ' + error.message);
+                console.error('Error al eliminar todos los borradores:', error);
+                mostrarMensaje('❌ Error al eliminar los borradores', 'error');
+            }
+        }
+
+        // ====================== FUNCIONES DE BÚSQUEDA Y FILTRADO ======================
+        async function filtrarBorradores() {
+            const terminoBusqueda = document.getElementById('searchInput').value.toLowerCase().trim();
+            const gerenciaFiltro = document.getElementById('gerenciaFilter').value;
+            
+            try {
+                if (!terminoBusqueda && !gerenciaFiltro) {
+                    mostrarBorradoresFiltrados(borradoresOriginales);
+                    return;
+                }
+                
+                const borradoresFiltrados = await reportesDB.buscarReportes(terminoBusqueda, gerenciaFiltro);
+                mostrarBorradoresFiltrados(borradoresFiltrados);
+            } catch (error) {
+                console.error('Error al filtrar borradores:', error);
+                mostrarMensaje('❌ Error al filtrar los reportes', 'error');
+            }
+        }
+        
+        function mostrarBorradoresFiltrados(borradores) {
+            const reportsList = document.getElementById('reportsList');
+            const noResults = document.getElementById('noResults');
+            
+            if (borradores.length === 0) {
+                reportsList.style.display = 'none';
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            reportsList.style.display = 'block';
+            noResults.style.display = 'none';
+            reportsList.innerHTML = '';
+            
+            // Ordenar por fecha de guardado (más recientes primero)
+            const borradoresOrdenados = [...borradores].sort((a, b) => 
+                new Date(b.fechaGuardado) - new Date(a.fechaGuardado)
+            );
+            
+            borradoresOrdenados.forEach(borrador => {
+                // Corregir problema de timezone agregando la hora del mediodía
+                const fechaCorregida = borrador.fecha + 'T12:00:00';
+                const fecha = new Date(fechaCorregida).toLocaleDateString('es-MX');
+                const fechaGuardado = new Date(borrador.fechaGuardado).toLocaleDateString('es-MX');
+                
+                const item = document.createElement('div');
+                item.className = 'report-item';
+                item.innerHTML = `
+                    <strong>${borrador.colegio}</strong> - ${borrador.gerencia} - ${borrador.zona}<br>
+                    <small>Contacto: ${borrador.nombreContacto} | Visita: ${fecha} | Guardado: ${fechaGuardado}</small>
+                    <div class="report-actions">
+                        <button class="btn-small btn-primary" onclick="cargarBorrador('${borrador.id}')">📝 Editar</button>
+                        <button class="btn-small btn-danger" onclick="eliminarBorrador('${borrador.id}')">🗑️ Eliminar</button>
+                    </div>
+                `;
+                reportsList.appendChild(item);
+            });
+        }
+
+        // ====================== FUNCIONES DE EXPORTACIÓN Y ESTADÍSTICAS ======================
+        async function exportarTodosBorradores() {
+            try {
+                const borradores = await reportesDB.obtenerTodosLosReportes();
+                
+                if (borradores.length === 0) {
+                    mostrarMensaje('⚠️ No hay borradores guardados para exportar', 'warning');
+                    return;
+                }
+                
+                const fechaExportacion = new Date().toLocaleString('es-MX');
+                const totalReportes = borradores.length;
+                
+                const gerencias = {};
+                borradores.forEach(b => {
+                    gerencias[b.gerencia] = (gerencias[b.gerencia] || 0) + 1;
+                });
+                
+                let contenidoCompleto = `EXPORTACIÓN COMPLETA DE REPORTES DE VISITA
+University of Dayton Publishing
+
+ESTADÍSTICAS BÁSICAS
+===================
+• Total de reportes: ${totalReportes}
+• Fecha de exportación: ${fechaExportacion}
+
+DISTRIBUCIÓN POR GERENCIA:
+`;
+                
+                Object.entries(gerencias).forEach(([gerencia, cantidad]) => {
+                    contenidoCompleto += `• ${gerencia}: ${cantidad} reportes\n`;
+                });
+                
+                contenidoCompleto += `
+${'='.repeat(60)}
+
+REPORTES COMPLETOS
+==================
+
+`;
+                
+                borradores.forEach((reporte, index) => {
+                    // Corregir problema de timezone agregando la hora del mediodía
+                    const fechaCorregida = reporte.fecha + 'T12:00:00';
+                    const fechaFormateada = new Date(fechaCorregida).toLocaleDateString('es-MX', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const fechaGuardado = new Date(reporte.fechaGuardado).toLocaleString('es-MX');
+                    
+                    contenidoCompleto += `REPORTE #${index + 1}
+${'-'.repeat(20)}
+
+INFORMACIÓN GENERAL
+Institución: ${reporte.colegio}
+¿Es usuario?: ${reporte.esUsuario || 'No especificado'}
+${reporte.esUsuario === 'Sí' && reporte.detalleUsuario ? 
+  `Producto/línea que utiliza: ${reporte.detalleUsuario}\n` : ''}
+${reporte.esUsuario === 'No' && reporte.detalleCompetencia ? 
+  `Competencia que utiliza: ${reporte.detalleCompetencia}\n` : ''}
+Gerencia: ${reporte.gerencia}
+Zona Comercial: ${reporte.zona}
+Fecha de Visita: ${fechaFormateada}
+Objetivo: ${reporte.objetivo}
+
+CONTACTO
+Nombre: ${reporte.nombreContacto}
+Cargo: ${reporte.cargoContacto}
+Teléfono: ${reporte.telefonoContacto}
+Correo: ${reporte.correoContacto}
+
+PRODUCTOS/SERVICIOS PRESENTADOS
+${reporte.productos}
+
+NOTAS RELEVANTES
+${reporte.notas}
+
+COMPROMISOS Y SIGUIENTES PASOS
+${reporte.compromisos}
+
+${reporte.huboQuejas ? `COMENTARIOS Y ÁREAS DE MEJORA
+Categoría: ${reporte.categoriaQueja || 'No especificada'}
+Detalle: ${reporte.detalleQuejaTexto || 'No especificado'}
+
+` : ''}Guardado: ${fechaGuardado}
+
+${'='.repeat(60)}
+
+`;
+                });
+                
+                const nombreArchivo = `exportacion_completa_reportes_${new Date().toISOString().split('T')[0]}.txt`;
+                descargarArchivo(nombreArchivo, contenidoCompleto);
+                
+                mostrarMensaje(`📦 Exportación completa descargada: ${totalReportes} reportes`);
+                
+            } catch (error) {
+                console.error('Error al exportar borradores:', error);
+                mostrarMensaje('❌ Error al exportar los reportes', 'error');
+            }
+        }
+        
+        async function generarEstadisticas() {
+            try {
+                const borradores = await reportesDB.obtenerTodosLosReportes();
+                
+                if (borradores.length === 0) {
+                    mostrarMensaje('⚠️ No hay reportes guardados para generar estadísticas', 'warning');
+                    return;
+                }
+                
+                const fechaGeneracion = new Date().toLocaleString('es-MX');
+                const totalVisitas = borradores.length;
+                
+                const visitasPorGerencia = {};
+                borradores.forEach(b => {
+                    visitasPorGerencia[b.gerencia] = (visitasPorGerencia[b.gerencia] || 0) + 1;
+                });
+                
+                const visitasPorColegio = {};
+                borradores.forEach(b => {
+                    visitasPorColegio[b.colegio] = (visitasPorColegio[b.colegio] || 0) + 1;
+                });
+                
+                const colegiosMasVisitados = Object.entries(visitasPorColegio)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 10);
+                
+                const fechas = borradores.map(b => {
+                    // Corregir problema de timezone agregando la hora del mediodía
+                    const fechaCorregida = b.fecha + 'T12:00:00';
+                    return new Date(fechaCorregida);
+                }).sort();
+                const fechaInicio = fechas[0].toLocaleDateString('es-MX');
+                const fechaFin = fechas[fechas.length - 1].toLocaleDateString('es-MX');
+                
+                const objetivos = {};
+                borradores.forEach(b => {
+                    objetivos[b.objetivo] = (objetivos[b.objetivo] || 0) + 1;
+                });
+                
+                const objetivosMasComunes = Object.entries(objetivos)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 5);
+                
+                const zonas = {};
+                borradores.forEach(b => {
+                    zonas[b.zona] = (zonas[b.zona] || 0) + 1;
+                });
+                
+                const zonasMasActivas = Object.entries(zonas)
+                    .sort(([,a], [,b]) => b - a)
+                    .slice(0, 10);
+                
+                let contenidoEstadisticas = `ESTADÍSTICAS DE ACTIVIDAD - REPORTES DE VISITA
+University of Dayton Publishing
+
+RESUMEN EJECUTIVO
+=================
+• Total de visitas registradas: ${totalVisitas}
+• Período de actividad: ${fechaInicio} - ${fechaFin}
+• Reporte generado: ${fechaGeneracion}
+
+DISTRIBUCIÓN POR GERENCIA
+=========================
+`;
+                
+                Object.entries(visitasPorGerencia)
+                    .sort(([,a], [,b]) => b - a)
+                    .forEach(([gerencia, cantidad]) => {
+                        const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                        contenidoEstadisticas += `• ${gerencia}: ${cantidad} visitas (${porcentaje}%)\n`;
+                    });
+                
+                contenidoEstadisticas += `
+COLEGIOS MÁS VISITADOS (TOP 10)
+===============================
+`;
+                
+                colegiosMasVisitados.forEach(([colegio, cantidad], index) => {
+                    contenidoEstadisticas += `${index + 1}. ${colegio}: ${cantidad} visita${cantidad > 1 ? 's' : ''}\n`;
+                });
+                
+                contenidoEstadisticas += `
+OBJETIVOS MÁS COMUNES (TOP 5)
+=============================
+`;
+                
+                objetivosMasComunes.forEach(([objetivo, cantidad], index) => {
+                    const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                    contenidoEstadisticas += `${index + 1}. ${objetivo}: ${cantidad} veces (${porcentaje}%)\n`;
+                });
+                
+                contenidoEstadisticas += `
+ZONAS MÁS ACTIVAS (TOP 10)
+==========================
+`;
+                
+                zonasMasActivas.forEach(([zona, cantidad], index) => {
+                    const porcentaje = ((cantidad / totalVisitas) * 100).toFixed(1);
+                    contenidoEstadisticas += `${index + 1}. ${zona}: ${cantidad} visita${cantidad > 1 ? 's' : ''} (${porcentaje}%)\n`;
+                });
+                
+                contenidoEstadisticas += `
+ANÁLISIS TEMPORAL
+=================
+• Primera visita registrada: ${fechaInicio}
+• Última visita registrada: ${fechaFin}
+• Promedio de visitas por gerencia: ${(totalVisitas / Object.keys(visitasPorGerencia).length).toFixed(1)}
+
+NOTAS ADICIONALES
+=================
+- Este reporte se basa en ${totalVisitas} reportes de visita guardados en IndexedDB
+- Las estadísticas reflejan la actividad acumulada hasta la fecha de generación
+- Para análisis más detallados, consulte los reportes individuales
+
+${'='.repeat(60)}
+Reporte generado automáticamente por el Sistema de Reportes de Visita
+University of Dayton Publishing
+`;
+                
+                const nombreArchivo = `estadisticas_actividad_${new Date().toISOString().split('T')[0]}.txt`;
+                descargarArchivo(nombreArchivo, contenidoEstadisticas);
+                
+                mostrarMensaje(`📊 Estadísticas generadas: ${totalVisitas} reportes analizados`);
+                
+            } catch (error) {
+                console.error('Error al generar estadísticas:', error);
+                mostrarMensaje('❌ Error al generar estadísticas', 'error');
+            }
+        }
+
+        // ====================== FUNCIONES DE PDF ======================
+        function descargarPDF() {
+            if (!reporteActual) {
+                mostrarMensaje('⚠️ Primero genera un reporte', 'warning');
+                return;
+            }
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const margenIzq = 20;
+                const margenDer = 20;
+                const anchoUtil = 210 - margenIzq - margenDer;
+                let yPos = 20;
+                
+                function agregarTexto(texto, x, y, opciones = {}) {
+                    const lineas = doc.splitTextToSize(texto, anchoUtil);
+                    doc.text(lineas, x, y, opciones);
+                    return y + (lineas.length * 7);
+                }
+                
+                function verificarEspacio(alturaRequerida) {
+                    if (yPos + alturaRequerida > 280) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                }
+                
+                doc.setFontSize(18);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('REPORTE DE VISITA', margenIzq, yPos);
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto('University of Dayton Publishing', margenIzq, yPos + 5);
+                yPos += 15;
+                
+                doc.line(margenIzq, yPos, 210 - margenDer, yPos);
+                yPos += 15;
+                
+                verificarEspacio(60);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('INFORMACIÓN GENERAL', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto(`Institución: ${reporteActual.colegio}`, margenIzq, yPos);
+                yPos = agregarTexto(`¿Es usuario?: ${reporteActual.esUsuario || 'No especificado'}`, margenIzq, yPos);
+                if (reporteActual.esUsuario === 'Sí' && reporteActual.detalleUsuario) {
+                    yPos = agregarTexto(`Producto/línea que utiliza: ${reporteActual.detalleUsuario}`, margenIzq, yPos);
+                }
+                if (reporteActual.esUsuario === 'No' && reporteActual.detalleCompetencia) {
+                    yPos = agregarTexto(`Competencia que utiliza: ${reporteActual.detalleCompetencia}`, margenIzq, yPos);
+                }
+                yPos = agregarTexto(`Gerencia: ${reporteActual.gerencia}`, margenIzq, yPos);
+                yPos = agregarTexto(`Zona Comercial: ${reporteActual.zona}`, margenIzq, yPos);
+                yPos = agregarTexto(`Fecha de Visita: ${reporteActual.fechaFormateada}`, margenIzq, yPos);
+                yPos = agregarTexto(`Objetivo: ${reporteActual.objetivo}`, margenIzq, yPos);
+                yPos += 10;
+                
+                verificarEspacio(40);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('CONTACTO', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                yPos = agregarTexto(`Nombre: ${reporteActual.nombreContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Cargo: ${reporteActual.cargoContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Teléfono: ${reporteActual.telefonoContacto}`, margenIzq, yPos);
+                yPos = agregarTexto(`Correo: ${reporteActual.correoContacto}`, margenIzq, yPos);
+                yPos += 10;
+                
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('PRODUCTOS/SERVICIOS PRESENTADOS', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.productos && reporteActual.productos.trim()) {
+                    yPos = agregarTexto(reporteActual.productos, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 10;
+                
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('NOTAS RELEVANTES', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.notas && reporteActual.notas.trim()) {
+                    yPos = agregarTexto(reporteActual.notas, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 10;
+                
+                verificarEspacio(30);
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                yPos = agregarTexto('COMPROMISOS Y SIGUIENTES PASOS', margenIzq, yPos);
+                yPos += 5;
+                
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                if (reporteActual.compromisos && reporteActual.compromisos.trim()) {
+                    yPos = agregarTexto(reporteActual.compromisos, margenIzq, yPos);
+                } else {
+                    yPos = agregarTexto('No especificado', margenIzq, yPos);
+                }
+                yPos += 15;
+                
+                if (reporteActual.huboQuejas) {
+                    verificarEspacio(30);
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    yPos = agregarTexto('COMENTARIOS Y ÁREAS DE MEJORA', margenIzq, yPos);
+                    yPos += 5;
+    
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'normal');
+                    yPos = agregarTexto(`Categoría: ${reporteActual.categoriaQueja || 'No especificada'}`, margenIzq, yPos);
+                    if (reporteActual.detalleQuejaTexto && reporteActual.detalleQuejaTexto.trim()) {
+                        yPos = agregarTexto(`Detalle: ${reporteActual.detalleQuejaTexto}`, margenIzq, yPos);
+                    }
+                    yPos += 10;
+                }
+
+                verificarEspacio(20);
+                doc.line(margenIzq, yPos, 210 - margenDer, yPos);
+                yPos += 10;
+                
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'italic');
+                const fechaGeneracion = `Reporte generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}`;
+                yPos = agregarTexto(fechaGeneracion, margenIzq, yPos);
+                
+                const nombreArchivo = `reporte_${reporteActual.colegio.replace(/\s+/g, "_")}_${reporteActual.fecha}.pdf`;
+                doc.save(nombreArchivo);
+                mostrarMensaje('📄 PDF descargado exitosamente');
+                
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                mostrarMensaje('❌ Error al generar el PDF. Intenta nuevamente.', 'warning');
+            }
+        }
+
+        // ====================== FUNCIONES AUXILIARES ======================
+        function copiarReporte() {
+            const contenido = document.getElementById('reporteContent').innerText;
+            navigator.clipboard.writeText(contenido).then(() => {
+                mostrarMensaje('✅ Reporte copiado al portapapeles');
+            }).catch(() => {
+                mostrarMensaje('❌ Error al copiar al portapapeles', 'warning');
+            });
+        }
+
+        function enviarEmail() {
+            const contenido = document.getElementById('reporteContent').innerText;
+            const asunto = `Reporte de Visita - ${document.getElementById('colegio').value}`;
+            const mailtoLink = `mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(contenido)}`;
+            window.location.href = mailtoLink;
+        }
+        
+        function descargarArchivo(nombre, contenido) {
+            const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+            const enlace = document.createElement('a');
+            enlace.href = URL.createObjectURL(blob);
+            enlace.download = nombre;
+            document.body.appendChild(enlace);
+            enlace.click();
+            document.body.removeChild(enlace);
+        }
+
+        function nuevoReporte() {
+            document.getElementById("visitaForm").reset();
+            
+            document.getElementById("detalleUsuario").style.display = "none";
+            document.getElementById("detalleCompetencia").style.display = "none";
+            document.getElementById("detalleQuejas").style.display = "none";
+            document.getElementById("otroObjetivoContainer").style.display = "none";
+            
+            document.getElementById('zona').innerHTML = '<option value="">Primero selecciona una gerencia</option>';
+            document.getElementById('fecha').valueAsDate = new Date();
+            
+            limpiarVistaPrevia();
+            document.getElementById('messages').innerHTML = '';
+            document.getElementById('colegio').focus();
+            
+            mostrarMensaje('📝 Formulario reiniciado para nuevo reporte');
+        }
+
+        // ====================== EVENT LISTENERS ======================
+        document.addEventListener("DOMContentLoaded", function () {
+            const usuarioSi = document.getElementById("usuario_si");
+            const usuarioNo = document.getElementById("usuario_no");
+            const detalleUsuario = document.getElementById("detalleUsuario");
+            const detalleCompetencia = document.getElementById("detalleCompetencia");
+            const huboQuejas = document.getElementById("huboQuejas");
+            const detalleQuejas = document.getElementById("detalleQuejas");
+
+            if (usuarioSi && usuarioNo) {
+                usuarioSi.addEventListener("change", () => {
+                    if (usuarioSi.checked) {
+                        detalleUsuario.style.display = "block";
+                        detalleCompetencia.style.display = "none";
+                        document.getElementById('detalleCompetenciaInput').value = '';
+                    }
+                });
+                usuarioNo.addEventListener("change", () => {
+                    if (usuarioNo.checked) {
+                        detalleUsuario.style.display = "none";
+                        detalleCompetencia.style.display = "block";
+                        document.getElementById('detalleUsuarioInput').value = '';
+                    }
+                });
+            }
+
+            if (huboQuejas) {
+                huboQuejas.addEventListener("change", () => {
+                    if (huboQuejas.checked) {
+                        detalleQuejas.style.display = "block";
+                    } else {
+                        detalleQuejas.style.display = "none";
+                        document.getElementById('categoriaQueja').value = '';
+                        document.getElementById('detalleQuejaTexto').value = '';
+                    }
+                });
             }
         });
         
-        // Enfocar el primer campo editable
-        setTimeout(() => {
-            document.getElementById('editUserName').focus();
-        }, 100);
+        // ============== FUNCIONES DE INTEGRACIÓN CON AUTENTICACIÓN ==============
+        function inicializarAppConUsuario(usuario) {
+            console.log('✅ Inicializando app para usuario:', usuario.nombre);
+            
+            // Mostrar información del usuario
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userName').textContent = `👋 ${usuario.nombre}`;
+            
+            // Configurar variables globales del usuario
+            window.usuarioActual = usuario;
+            
+            // Si es administrador, mostrar botón de panel admin y config GitHub
+            if (usuario.rol === 'administrador') {
+                if (interfazLogin) {
+                    interfazLogin.mostrarPanelAdmin();
+                }
+                // Mostrar botón de configuración de GitHub
+                const btnConfigGitHub = document.getElementById('btnConfigGitHub');
+                if (btnConfigGitHub) {
+                    btnConfigGitHub.style.display = 'inline-block';
+                    console.log('✅ Botón Config GitHub activado para admin');
+                }
+            }
+            
+            // Inicializar el sistema completo después del login
+            setTimeout(async () => {
+                await inicializarSistema();
+                await actualizarEstadoSincronizacion();
+            }, 500);
+        }
         
-    } catch (error) {
-        alert('❌ Error cargando datos del usuario: ' + error.message);
-        console.error('Error:', error);
-    }
-}
+        function cerrarSesion() {
+            if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+                if (sistemaAuth) {
+                    // Cerrar panel admin si está abierto
+                    const adminOverlay = document.getElementById('adminOverlay');
+                    if (adminOverlay) {
+                        adminOverlay.remove();
+                    }
 
-function toggleUsuario(userId) {
-    try {
-        const usuarios = sistemaAuth.obtenerUsuarios();
-        const usuario = usuarios[userId];
-        
-        if (!usuario) {
-            alert('Usuario no encontrado');
-            return;
-        }
-
-        const nuevoEstado = !usuario.activo;
-        
-        sistemaAuth.actualizarUsuario(userId, { activo: nuevoEstado });
-        
-        alert(`✅ Usuario ${nuevoEstado ? 'activado' : 'desactivado'} exitosamente`);
-        if (window.panelAdmin) {
-            window.panelAdmin.cargarUsuarios();
-        }
-    } catch (error) {
-        alert('❌ Error actualizando usuario: ' + error.message);
-    }
-}
-
-function filtrarReportesAdmin() {
-    if (window.panelAdmin) {
-        window.panelAdmin.filtrarReportesAdmin();
-    }
-}
-
-async function sincronizarReportesAdminGitHub() {
-    const boton = event.target;
-    const textoOriginal = boton.textContent;
-    
-    console.log('📤 === INICIO BACKUP REPORTES ADMIN A GITHUB ===');
-    
-    try {
-        boton.textContent = '⏳ Iniciando...';
-        boton.disabled = true;
-        
-        // Verificar que es admin
-        const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
-        if (!usuarioActual || usuarioActual.rol !== 'administrador') {
-            alert('❌ Solo los administradores pueden hacer backup de reportes');
-            return;
+                    // Logout usando el sistema de autenticación
+                    sistemaAuth.logout();
+                }
+            }
         }
         
-        // Verificar que githubSync esté disponible
-        if (!window.githubSync) {
-            alert('❌ Sistema de GitHub no disponible. Recarga la página y asegúrate de tener configuración válida.');
-            return;
+        // Función para mostrar panel de administrador
+        function mostrarPanelAdministrador() {
+            if (typeof PanelAdministrador !== 'undefined') {
+                window.panelAdmin = new PanelAdministrador();
+                window.panelAdmin.mostrar();
+            } else {
+                alert('❌ Panel de administrador no disponible. Recarga la página.');
+            }
         }
         
-        // Verificar configuración de GitHub
-        if (!validarConfiguracionGitHub(window.githubSync.config)) {
-            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
-            return;
-        }
+        // Función global para mostrar panel de administrador
+        window.mostrarPanelAdministrador = mostrarPanelAdministrador;
         
-        // Obtener todos los usuarios para hacer backup de sus reportes
-        const usuarios = window.sistemaAuth.obtenerUsuarios() || {};
-        const listaUsuarios = Object.keys(usuarios);
-        
-        if (listaUsuarios.length === 0) {
-            alert('⚠️ No hay usuarios para hacer backup de reportes');
-            return;
-        }
-        
-        boton.textContent = '📤 Subiendo reportes...';
-        console.log(`🌐 Haciendo backup de reportes de ${listaUsuarios.length} usuarios...`);
-        
-        let totalExitosos = 0;
-        let totalReportes = 0;
-        
-        // Hacer backup de cada usuario por separado
-        for (const userId of listaUsuarios) {
+        // ============== FUNCIONES DE SINCRONIZACIÓN ==============
+        async function actualizarEstadoSincronizacion() {
             try {
-                console.log(`👤 Backup reportes de ${userId}...`);
-                const resultado = await window.githubSync.sincronizarReportes(userId);
-                if (resultado.exito) {
-                    totalExitosos++;
-                    totalReportes += resultado.cantidad;
-                    console.log(`✅ ${resultado.cantidad} reportes de ${userId} subidos`);
+                const reportesLocales = await reportesDB.obtenerTodosLosReportes();
+                const pendientes = reportesLocales.filter(r => !r.sincronizadoGitHub);
+                const sincronizados = reportesLocales.filter(r => r.sincronizadoGitHub);
+                
+                const statusBar = document.getElementById('syncStatus');
+                const statusText = document.getElementById('syncStatusText');
+                const statusBadge = document.getElementById('syncStatusBadge');
+                const btnSync = document.getElementById('btnSincronizar');
+                
+                if (!statusBar || !btnSync) return;
+                
+                statusBar.style.display = 'block';
+                
+                if (pendientes.length === 0) {
+                    // Todo sincronizado
+                    statusBar.className = 'sync-status-bar';
+                    statusText.textContent = '✅ Todos los reportes están sincronizados';
+                    statusBadge.textContent = `${sincronizados.length} en la nube`;
+                    statusBadge.className = 'sync-badge';
+                    btnSync.innerHTML = '✅ Sincronizado';
+                    btnSync.disabled = true;
+                } else {
+                    // Hay pendientes
+                    statusBar.className = 'sync-status-bar warning';
+                    statusText.textContent = `⚠️ Hay ${pendientes.length} reporte${pendientes.length > 1 ? 's' : ''} sin sincronizar`;
+                    statusBadge.textContent = `${pendientes.length} pendiente${pendientes.length > 1 ? 's' : ''}`;
+                    statusBadge.className = 'sync-badge warning';
+                    btnSync.innerHTML = `☁️ Sincronizar (${pendientes.length})`;
+                    btnSync.disabled = false;
+                }
+                
+                // Si no hay conexión
+                if (!navigator.onLine) {
+                    statusBar.className = 'sync-status-bar error';
+                    statusText.textContent = '🔴 Sin conexión - Los reportes se sincronizarán cuando regrese la conexión';
+                    statusBadge.textContent = 'Offline';
+                    statusBadge.className = 'sync-badge error';
+                    btnSync.innerHTML = '🔴 Sin conexión';
+                    btnSync.disabled = true;
+                }
+                
+            } catch (error) {
+                console.error('Error actualizando estado de sincronización:', error);
+            }
+        }
+        
+        async function sincronizarReportesManual() {
+            const btnSync = document.getElementById('btnSincronizar');
+            const statusText = document.getElementById('syncStatusText');
+            
+            if (!navigator.onLine) {
+                mostrarMensaje('❌ No hay conexión a internet', 'error');
+                return;
+            }
+            
+            // Cambiar estado del botón
+            const textoOriginal = btnSync.innerHTML;
+            btnSync.innerHTML = '🔄 Sincronizando...';
+            btnSync.disabled = true;
+            statusText.textContent = '🔄 Sincronizando reportes con GitHub...';
+            
+            try {
+                // Verificar que githubSync esté disponible
+                if (!window.githubSync) {
+                    console.log('🔧 Inicializando githubSync desde sincronizarReportesManual');
+                    if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                        window.githubSync = new GitHubSync();
+                        console.log('✅ githubSync inicializado manualmente');
+                    } else {
+                        mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
+                        btnSync.innerHTML = textoOriginal;
+                        btnSync.disabled = false;
+                        return;
+                    }
+                }
+                
+                // Validar configuración de GitHub
+                if (!validarConfiguracionGitHub(window.githubSync.config)) {
+                    mostrarMensaje('⚠️ Por favor configura GitHub primero', 'warning');
+                    btnSync.innerHTML = textoOriginal;
+                    btnSync.disabled = false;
+                    return;
+                }
+                
+                // Sincronizar reportes con GitHub (usar el método correcto del usuario actual)
+                const usuarioActual = window.usuarioActual?.id;
+                const resultado = await window.githubSync.sincronizarReportes(usuarioActual);
+                
+                // Actualizar estado
+                await actualizarEstadoSincronizacion();
+                await cargarBorradores();
+                
+                // Mostrar resumen de sincronización
+                const reportesLocales = await reportesDB.obtenerTodosLosReportes();
+                const sincronizados = reportesLocales.filter(r => r.sincronizadoGitHub);
+                mostrarMensaje(`✅ Sincronización completada: ${sincronizados.length} reportes en la nube`, 'success');
+                
+            } catch (error) {
+                console.error('Error en sincronización manual:', error);
+                mostrarMensaje('❌ Error al sincronizar: ' + error.message, 'error');
+                btnSync.innerHTML = textoOriginal;
+                btnSync.disabled = false;
+            }
+        }
+        
+        // Actualizar estado cuando se carga la lista de borradores
+        let cargarBorradoresOriginal = null;
+        
+        // Esperar a que la función original esté disponible
+        setTimeout(() => {
+            if (typeof cargarBorradores === 'function') {
+                cargarBorradoresOriginal = cargarBorradores;
+                window.cargarBorradores = async function() {
+                    await cargarBorradoresOriginal();
+                    await actualizarEstadoSincronizacion();
+                };
+            }
+        }, 1000);
+        
+        // Actualizar estado cuando cambia la conexión
+        window.addEventListener('online', () => {
+            actualizarEstadoSincronizacion();
+            mostrarMensaje('✅ Conexión restaurada', 'success');
+        });
+        
+        window.addEventListener('offline', () => {
+            actualizarEstadoSincronizacion();
+            mostrarMensaje('🔴 Sin conexión', 'warning');
+        });
+        
+        // Función para mostrar configuración de GitHub
+        function mostrarConfiguracionGitHub() {
+            // Verificar si githubSync está disponible, si no, inicializarlo
+            if (!window.githubSync) {
+                console.log('🔧 Inicializando githubSync desde mostrarConfiguracionGitHub');
+                if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ githubSync inicializado manualmente');
+                } else {
+                    alert('❌ Error: Sistema de GitHub no disponible. Recarga la página.');
+                    return;
+                }
+            }
+            
+            const config = cargarConfiguracionGitHub();
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:10000';
+            
+            modal.innerHTML = `
+                <div style="background:white;padding:30px;border-radius:10px;max-width:500px;width:90%">
+                    <h2 style="margin-bottom:20px">⚙️ Configuración de GitHub</h2>
+                    <form id="githubConfigForm">
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Usuario de GitHub:</label>
+                            <input type="text" id="githubOwner" value="${config.owner || ''}" 
+                                   placeholder="tu-usuario" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                        </div>
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Repositorio:</label>
+                            <input type="text" id="githubRepo" value="${config.repo || ''}" 
+                                   placeholder="nombre-repositorio" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                        </div>
+                        <div style="margin-bottom:15px">
+                            <label style="display:block;margin-bottom:5px">Personal Access Token:</label>
+                            <input type="password" id="githubToken" value="${config.token || ''}" 
+                                   placeholder="ghp_xxxxxxxxxxxx" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
+                            <small style="color:#666">Necesitas un token con permisos de repo. 
+                            <a href="https://github.com/settings/tokens/new" target="_blank">Crear token</a></small>
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:20px">
+                            <button type="submit" class="btn-small btn-success">💾 Guardar</button>
+                            <button type="button" onclick="this.closest('.modal-overlay').remove()" class="btn-small">Cancelar</button>
+                            <button type="button" onclick="probarConexionGitHub()" class="btn-small btn-info">🔗 Probar Conexión</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            document.getElementById('githubConfigForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const owner = document.getElementById('githubOwner').value;
+                const repo = document.getElementById('githubRepo').value;
+                const token = document.getElementById('githubToken').value;
+                
+                if (!owner || !repo || !token) {
+                    mostrarMensaje('❌ Todos los campos son requeridos', 'error');
+                    return;
+                }
+                
+                if (window.githubSync) {
+                    window.githubSync.actualizarConfiguracion(owner, repo, token);
+                } else {
+                    mostrarMensaje('❌ Sistema de GitHub no disponible', 'error');
+                    return;
+                }
+                mostrarMensaje('✅ Configuración guardada', 'success');
+                modal.remove();
+            });
+        }
+        
+        async function probarConexionGitHub() {
+            const owner = document.getElementById('githubOwner').value;
+            const repo = document.getElementById('githubRepo').value;
+            const token = document.getElementById('githubToken').value;
+            
+            if (!owner || !repo || !token) {
+                mostrarMensaje('❌ Completa todos los campos primero', 'error');
+                return;
+            }
+            
+            // Verificar si githubSync está disponible, si no, inicializarlo
+            if (!window.githubSync) {
+                console.log('🔧 Inicializando githubSync desde probarConexionGitHub');
+                if (typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ githubSync inicializado manualmente');
+                } else {
+                    mostrarMensaje('❌ Sistema de GitHub no disponible. Recarga la página.', 'error');
+                    return;
+                }
+            }
+            
+            window.githubSync.actualizarConfiguracion(owner, repo, token);
+            const resultado = await window.githubSync.probarConexion();
+            
+            if (resultado.exito) {
+                mostrarMensaje('✅ Conexión exitosa con GitHub', 'success');
+            } else {
+                mostrarMensaje('❌ Error de conexión: ' + resultado.error, 'error');
+            }
+        }
+        
+        // Mostrar botón de configuración de GitHub solo para admin
+        function actualizarBotonGitHub() {
+            const btnConfig = document.getElementById('btnConfigGitHub');
+            if (btnConfig) {
+                if (sistemaAuth && sistemaAuth.esAdmin()) {
+                    btnConfig.style.display = 'inline-block';
+                } else {
+                    btnConfig.style.display = 'none';
+                }
+            }
+        }
+        
+        // Verificar cada 2 segundos si el usuario es admin
+        setInterval(() => {
+            actualizarBotonGitHub();
+        }, 2000);
+        
+        // También actualizar cuando cambia el usuario
+        setTimeout(() => {
+            actualizarBotonGitHub();
+        }, 1000);
+        
+        // ============== GITHUBSYNC SE CARGA DESDE ARCHIVO SEPARADO ==============
+        // ELIMINADO: Código duplicado que causaba conflictos
+        
+        // TEMPORAL: Clase vacía para evitar errores
+        class GitHubSyncDuplicada {
+            constructor() {
+                this.config = cargarConfiguracionGitHub();
+                this.baseUrl = 'https://api.github.com';
+            }
+
+            actualizarConfiguracion(owner, repo, token) {
+                this.config = { ...this.config, owner, repo, token };
+                guardarConfiguracionGitHub(this.config);
+            }
+
+            construirUrl(path) {
+                return `${this.baseUrl}/repos/${this.config.owner}/${this.config.repo}/contents/${path}`;
+            }
+
+            obtenerHeaders() {
+                return {
+                    'Authorization': `Bearer ${this.config.token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                };
+            }
+
+            async leerArchivo(path) {
+                try {
+                    const response = await fetch(this.construirUrl(path), {
+                        headers: this.obtenerHeaders()
+                    });
+
+                    if (response.status === 404) {
+                        console.log(`📄 Archivo no existe en GitHub: ${path}`);
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`Error leyendo archivo: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const content = atob(data.content);
+                    return { content: JSON.parse(content), sha: data.sha };
+                } catch (error) {
+                    console.error('Error leyendo de GitHub:', error);
+                    throw error;
+                }
+            }
+
+            async escribirArchivo(path, content, message, sha = null) {
+                try {
+                    const body = {
+                        message: message,
+                        content: btoa(JSON.stringify(content, null, 2)),
+                        branch: this.config.branch
+                    };
+
+                    if (sha) body.sha = sha;
+
+                    const response = await fetch(this.construirUrl(path), {
+                        method: 'PUT',
+                        headers: this.obtenerHeaders(),
+                        body: JSON.stringify(body)
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(`Error escribiendo archivo: ${JSON.stringify(error)}`);
+                    }
+
+                    const result = await response.json();
+                    console.log(`✅ Archivo guardado en GitHub: ${path}`);
+                    return result;
+                } catch (error) {
+                    console.error('Error escribiendo en GitHub:', error);
+                    throw error;
+                }
+            }
+
+            // ELIMINADO: Función duplicada que causaba problemas
+
+            async sincronizarReportes() {
+                console.log('🔄 Sincronizando reportes con GitHub...');
+                
+                try {
+                    let reportesLocales = [];
+                    if (window.reportesDB && typeof window.reportesDB.obtenerTodosLosReportes === 'function') {
+                        reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
+                    } else {
+                        const reportesGuardados = localStorage.getItem('reportes') || '[]';
+                        reportesLocales = JSON.parse(reportesGuardados);
+                    }
+                    console.log(`📊 Reportes locales: ${reportesLocales.length}`);
+
+                    const archivoGitHub = await this.leerArchivo(this.config.paths.reportes);
+                    const reportesGitHub = archivoGitHub ? archivoGitHub.content : [];
+                    console.log(`📊 Reportes en GitHub: ${reportesGitHub.length}`);
+
+                    const reportesMap = new Map();
+                    reportesGitHub.forEach(reporte => reportesMap.set(reporte.id, reporte));
+                    reportesLocales.forEach(reporte => {
+                        const existente = reportesMap.get(reporte.id);
+                        if (!existente || new Date(reporte.fechaGuardado) > new Date(existente.fechaGuardado)) {
+                            reportesMap.set(reporte.id, reporte);
+                        }
+                    });
+
+                    const reportesMerged = Array.from(reportesMap.values());
+                    reportesMerged.forEach(reporte => reporte.sincronizadoGitHub = true);
+
+                    if (window.reportesDB && typeof window.reportesDB.guardarReporte === 'function') {
+                        for (const reporte of reportesMerged) {
+                            await window.reportesDB.guardarReporte(reporte);
+                        }
+                    } else {
+                        localStorage.setItem('reportes', JSON.stringify(reportesMerged));
+                    }
+
+                    await this.escribirArchivo(
+                        this.config.paths.reportes,
+                        reportesMerged,
+                        `Sincronización de reportes - ${new Date().toLocaleString()}`,
+                        archivoGitHub?.sha
+                    );
+
+                    console.log(`✅ Sincronización completada: ${reportesMerged.length} reportes`);
+                    return { exito: true, cantidad: reportesMerged.length };
+
+                } catch (error) {
+                    console.error('❌ Error en sincronización de reportes:', error);
+                    throw error;
+                }
+            }
+
+            async probarConexion() {
+                try {
+                    const response = await fetch(`${this.baseUrl}/repos/${this.config.owner}/${this.config.repo}`, {
+                        headers: this.obtenerHeaders()
+                    });
+
+                    if (response.ok) {
+                        const repo = await response.json();
+                        console.log('✅ Conexión exitosa con GitHub');
+                        console.log(`📦 Repositorio: ${repo.full_name}`);
+                        return { exito: true, repo };
+                    } else {
+                        throw new Error(`Error de conexión: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.error('❌ Error probando conexión:', error);
+                    return { exito: false, error: error.message };
+                }
+            }
+        }
+
+        // Función para inicializar githubSync de forma robusta
+        function inicializarGitHubSyncGlobal() {
+            try {
+                if (!window.githubSync && typeof GitHubSync !== 'undefined' && typeof cargarConfiguracionGitHub === 'function') {
+                    window.githubSync = new GitHubSync();
+                    console.log('✅ GitHubSync inicializado correctamente en HTML');
+                    return true;
+                } else if (window.githubSync) {
+                    console.log('✅ GitHubSync ya está inicializado');
+                    return true;
+                } else {
+                    console.warn('⚠️ Dependencias de GitHubSync no disponibles');
+                    return false;
                 }
             } catch (error) {
-                console.log(`⚠️ Error con reportes de ${userId}:`, error.message);
+                console.error('❌ Error inicializando GitHubSync:', error);
+                return false;
             }
         }
         
-        console.log('✅ Backup completo:', { usuariosExitosos: totalExitosos, totalReportes });
-        alert(`✅ Backup completado: ${totalReportes} reportes de ${totalExitosos} usuarios subidos a GitHub`);
-        
-    } catch (error) {
-        console.error('❌ Error en backup de reportes:', error);
-        alert(`❌ Error en backup de reportes: ${error.message}`);
-        
-    } finally {
-        console.log('🏁 === FIN BACKUP REPORTES ADMIN ===');
-        boton.textContent = textoOriginal;
-        boton.disabled = false;
-    }
-}
-
-async function restaurarReportesAdminGitHub() {
-    if (!confirm('⚠️ ¿Estás seguro de que quieres RESTAURAR reportes desde GitHub?\n\nEsto SOBRESCRIBIRÁ todos los reportes locales con los datos de GitHub.')) {
-        return;
-    }
-
-    const boton = event.target;
-    const textoOriginal = boton.textContent;
-    
-    console.log('📥 === INICIO RESTORE REPORTES ADMIN DESDE GITHUB ===');
-    
-    try {
-        boton.textContent = '⏳ Descargando...';
-        boton.disabled = true;
-        
-        // Verificar que es admin
-        const usuarioActual = window.usuarioActual || (window.sistemaAuth ? window.sistemaAuth.obtenerSesionActual() : null);
-        if (!usuarioActual || usuarioActual.rol !== 'administrador') {
-            alert('❌ Solo los administradores pueden restaurar reportes');
-            return;
+        // Intentar inicializar inmediatamente
+        if (!inicializarGitHubSyncGlobal()) {
+            // Si falla, intentar de nuevo en el próximo tick
+            setTimeout(inicializarGitHubSyncGlobal, 100);
         }
         
-        // Verificar que githubSync esté disponible
-        if (!window.githubSync) {
-            alert('❌ Sistema de GitHub no disponible. Recarga la página.');
-            return;
-        }
-        
-        // Verificar configuración de GitHub
-        if (!validarConfiguracionGitHub(window.githubSync.config)) {
-            alert('⚠️ Por favor configura GitHub primero (botón Config GitHub en el header)');
-            return;
-        }
-        
-        // Restaurar reportes de todos los usuarios desde GitHub
-        boton.textContent = '📥 Descargando desde GitHub...';
-        console.log('🌐 Restaurando reportes de todos los usuarios desde GitHub...');
-        
-        const resultado = await window.githubSync.descargarReportesDeTodosLosUsuarios();
-        
-        if (resultado.exito) {
-            console.log('✅ Restore exitoso:', resultado);
-            alert(`✅ Restore completado: ${resultado.totalReportes} reportes de ${resultado.usuariosProcesados} usuarios descargados desde GitHub`);
-            
-            // Recargar panel para mostrar reportes restaurados
-            if (window.panelAdmin) {
-                await window.panelAdmin.cargarDatos();
-            } else {
-                setTimeout(() => {
-                    cerrarPanelAdmin();
-                    mostrarPanelAdministrador();
-                }, 1000);
+        // Función global para forzar inicialización cuando sea necesario
+        window.asegurarGitHubSync = function() {
+            if (!window.githubSync) {
+                return inicializarGitHubSyncGlobal();
             }
-        } else {
-            throw new Error(resultado.error || 'Error desconocido');
-        }
-        
-    } catch (error) {
-        console.error('❌ Error en restore de reportes:', error);
-        alert(`❌ Error restaurando reportes desde GitHub: ${error.message}`);
-        
-    } finally {
-        console.log('🏁 === FIN RESTORE REPORTES ADMIN ===');
-        boton.textContent = textoOriginal;
-        boton.disabled = false;
-    }
-}
+            return true;
+        };
 
-console.log('⚙️ Panel de administrador cargado');
+        
+    </script>
+
+    <!-- Registro del Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(function(registration) {
+                        console.log('✅ Service Worker registrado exitosamente:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('❌ Error registrando Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+
+    <footer class="footer-leyenda">
+        Herramienta de uso interno. Propiedad de <strong>University of Dayton Publishing</strong>. Su uso está restringido exclusivamente al personal autorizado.
+    </footer>
+
+</body>
+</html>
