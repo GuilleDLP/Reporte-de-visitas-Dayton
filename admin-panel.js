@@ -504,11 +504,13 @@ class PanelAdministrador {
             this.mostrarUsuarios();
         }
         
-        // Cargar reportes locales (agregando soporte para archivos por usuario)
+        // Cargar reportes locales (sin filtrar - el admin ve todo)
         try {
             if (window.reportesDB) {
-                const reportesLocales = await window.reportesDB.obtenerTodosLosReportes();
+                // Como admin, necesitamos ver TODOS los reportes sin filtrar
+                const reportesLocales = await window.reportesDB.obtenerTodosLosReportesSinFiltrar();
                 this.reportes = reportesLocales;
+                console.log(`📊 Admin panel cargó ${reportesLocales.length} reportes total`);
             } else {
                 // Fallback a localStorage
                 const reportesGuardados = localStorage.getItem('reportes') || '[]';
