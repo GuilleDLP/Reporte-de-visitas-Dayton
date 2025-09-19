@@ -951,23 +951,24 @@
 
             async guardarReporte(reporte) {
                 if (!this.db) throw new Error('Base de datos no inicializada');
-                
+
                 return new Promise((resolve, reject) => {
                     const transaction = this.db.transaction(['reportes'], 'readwrite');
                     const store = transaction.objectStore('reportes');
-                    
+
                     // Asegurar que el reporte tenga un ID único
                     if (!reporte.id) {
                         reporte.id = Date.now() + Math.random().toString(36).substr(2, 9);
                     }
-                    
-                    const request = store.add(reporte);
-                    
+
+                    // Usar put() en lugar de add() para permitir sobrescribir
+                    const request = store.put(reporte);
+
                     request.onsuccess = () => {
                         console.log('Reporte guardado:', reporte.id);
                         resolve(reporte.id);
                     };
-                    
+
                     request.onerror = () => {
                         console.error('Error al guardar reporte:', request.error);
                         reject(request.error);
@@ -2401,8 +2402,9 @@ University of Dayton Publishing
                     return;
                 }
                 
-                // Sincronizar reportes con GitHub
-                const resultado = await window.githubSync.sincronizarReportes();
+                // Sincronizar reportes con GitHub (usar el método correcto del usuario actual)
+                const usuarioActual = window.usuarioActual?.id;
+                const resultado = await window.githubSync.sincronizarReportes(usuarioActual);
                 
                 // Actualizar estado
                 await actualizarEstadoSincronizacion();
