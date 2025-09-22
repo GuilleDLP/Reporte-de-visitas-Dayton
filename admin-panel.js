@@ -33,6 +33,7 @@ class PanelAdministrador {
                         <button class="tab-button active" onclick="mostrarTab('usuarios')">👥 Usuarios</button>
                         <button class="tab-button" onclick="mostrarTab('reportes')">📊 Reportes</button>
                         <button class="tab-button" onclick="mostrarTab('estadisticas')">📈 Estadísticas</button>
+                        <button class="tab-button" onclick="mostrarTab('analisis')">📊 Análisis</button>
                     </div>
                     
                     <!-- TAB USUARIOS -->
@@ -136,6 +137,90 @@ class PanelAdministrador {
                         <div class="admin-section">
                             <h3>Estadísticas Generales</h3>
                             <div id="estadisticasGenerales" class="estadisticas-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- TAB ANÁLISIS -->
+                    <div id="tab-analisis" class="tab-content">
+                        <div class="admin-section">
+                            <h3>📊 Reportes Administrativos</h3>
+                            <p class="section-description">
+                                Genere reportes comprehensivos de actividad para análisis administrativo y toma de decisiones.
+                            </p>
+
+                            <div class="report-controls">
+                                <div class="control-group">
+                                    <label for="reportPeriodoVisitas">📅 Período de Reporte:</label>
+                                    <select id="reportPeriodoVisitas" onchange="actualizarFechasReporteVisitas()">
+                                        <option value="mes">Último Mes</option>
+                                        <option value="trimestre">Último Trimestre</option>
+                                        <option value="semestre">Último Semestre</option>
+                                        <option value="ano">Último Año</option>
+                                        <option value="custom">Período Personalizado</option>
+                                    </select>
+                                </div>
+
+                                <div class="control-group" id="customDateRangeVisitas" style="display: none;">
+                                    <label for="reportFechaInicioVisitas">Fecha Inicio:</label>
+                                    <input type="date" id="reportFechaInicioVisitas">
+                                    <label for="reportFechaFinVisitas">Fecha Fin:</label>
+                                    <input type="date" id="reportFechaFinVisitas">
+                                </div>
+
+                                <div class="control-group">
+                                    <label for="reportUsuarioVisitas">👥 Usuario:</label>
+                                    <select id="reportUsuarioVisitas">
+                                        <option value="todos">Todos los Usuarios</option>
+                                    </select>
+                                </div>
+
+                                <div class="control-group">
+                                    <label for="reportGerenciaVisitas">🏢 Gerencia:</label>
+                                    <select id="reportGerenciaVisitas">
+                                        <option value="todas">Todas las Gerencias</option>
+                                        <option value="Bajío">Bajío</option>
+                                        <option value="Centro-Norte">Centro-Norte</option>
+                                        <option value="Centro-Sur">Centro-Sur</option>
+                                        <option value="Norte">Norte</option>
+                                        <option value="Occidente">Occidente</option>
+                                        <option value="Oriente">Oriente</option>
+                                        <option value="Pacífico">Pacífico</option>
+                                        <option value="Sur">Sur</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="report-actions">
+                                <button class="btn-admin btn-primary" onclick="generarReporteEjecutivoVisitas()">
+                                    📈 Reporte Ejecutivo
+                                </button>
+                                <button class="btn-admin btn-secondary" onclick="generarReporteDetalladoVisitas()">
+                                    📋 Reporte Detallado
+                                </button>
+                                <button class="btn-admin btn-info" onclick="previsualizarReporteVisitas()">
+                                    👁️ Vista Previa
+                                </button>
+                            </div>
+
+                            <div id="reportPreviewVisitas" class="report-preview" style="display: none;">
+                                <h4>📊 Vista Previa del Reporte</h4>
+                                <div id="reportPreviewContentVisitas"></div>
+                            </div>
+
+                            <div class="export-formats">
+                                <h4>💾 Exportar Reporte</h4>
+                                <div class="export-buttons">
+                                    <button class="btn-admin btn-success" onclick="exportarReportePDFVisitas()">
+                                        📑 PDF Ejecutivo
+                                    </button>
+                                    <button class="btn-admin btn-success" onclick="exportarReporteExcelVisitas()">
+                                        📊 Excel Detallado
+                                    </button>
+                                    <button class="btn-admin btn-success" onclick="exportarReporteCSVVisitas()">
+                                        📄 CSV Analítico
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1399,6 +1484,473 @@ async function restaurarReportesAdminGitHub() {
         console.log('🏁 === FIN RESTORE REPORTES ADMIN ===');
         boton.textContent = textoOriginal;
         boton.disabled = false;
+    }
+}
+
+// ====================================================================
+// FUNCIONES DE REPORTES ADMINISTRATIVOS PARA REPORTE DE VISITAS
+// ====================================================================
+
+// Variables globales para reportes de visitas
+let reporteDataVisitas = {
+    reportes: [],
+    borradores: [],
+    usuarios: {},
+    fechaInicio: null,
+    fechaFin: null,
+    filtros: {}
+};
+
+// Actualizar fechas según período seleccionado
+function actualizarFechasReporteVisitas() {
+    const periodo = document.getElementById('reportPeriodoVisitas').value;
+    const customRange = document.getElementById('customDateRangeVisitas');
+    const fechaInicio = document.getElementById('reportFechaInicioVisitas');
+    const fechaFin = document.getElementById('reportFechaFinVisitas');
+
+    if (periodo === 'custom') {
+        customRange.style.display = 'block';
+        return;
+    }
+
+    customRange.style.display = 'none';
+
+    const hoy = new Date();
+    let inicio = new Date();
+
+    switch (periodo) {
+        case 'mes':
+            inicio.setMonth(hoy.getMonth() - 1);
+            break;
+        case 'trimestre':
+            inicio.setMonth(hoy.getMonth() - 3);
+            break;
+        case 'semestre':
+            inicio.setMonth(hoy.getMonth() - 6);
+            break;
+        case 'ano':
+            inicio.setFullYear(hoy.getFullYear() - 1);
+            break;
+    }
+
+    fechaInicio.value = inicio.toISOString().split('T')[0];
+    fechaFin.value = hoy.toISOString().split('T')[0];
+}
+
+// Cargar datos para reportes de visitas
+async function cargarDatosReporteVisitas() {
+    try {
+        console.log('📊 Cargando datos de reportes de visitas...');
+
+        // Cargar reportes generados
+        if (window.reportesDB) {
+            reporteDataVisitas.reportes = await window.reportesDB.obtenerTodosLosReportesSinFiltrar() || [];
+        } else {
+            const reportesGuardados = localStorage.getItem('reportes') || '[]';
+            reporteDataVisitas.reportes = JSON.parse(reportesGuardados);
+        }
+
+        // Cargar borradores
+        const borradoresGuardados = localStorage.getItem('borradores') || '[]';
+        reporteDataVisitas.borradores = JSON.parse(borradoresGuardados);
+
+        // Cargar usuarios
+        reporteDataVisitas.usuarios = sistemaAuth.obtenerUsuarios() || {};
+
+        // Cargar usuarios en dropdown
+        const usuarioSelect = document.getElementById('reportUsuarioVisitas');
+        if (usuarioSelect) {
+            usuarioSelect.innerHTML = '<option value="todos">Todos los Usuarios</option>';
+            Object.entries(reporteDataVisitas.usuarios).forEach(([username, usuario]) => {
+                if (username !== 'administrador') {
+                    usuarioSelect.innerHTML += `<option value="${username}">${usuario.nombre}</option>`;
+                }
+            });
+        }
+
+        console.log(`✅ Datos cargados: ${reporteDataVisitas.reportes.length} reportes, ${reporteDataVisitas.borradores.length} borradores`);
+
+    } catch (error) {
+        console.error('❌ Error cargando datos para reporte de visitas:', error);
+        alert('Error cargando datos. Verifique la aplicación.');
+    }
+}
+
+// Filtrar datos según criterios seleccionados
+function filtrarDatosReporteVisitas() {
+    const periodo = document.getElementById('reportPeriodoVisitas').value;
+    const usuario = document.getElementById('reportUsuarioVisitas').value;
+    const gerencia = document.getElementById('reportGerenciaVisitas').value;
+
+    let fechaInicio, fechaFin;
+
+    if (periodo === 'custom') {
+        fechaInicio = document.getElementById('reportFechaInicioVisitas').value;
+        fechaFin = document.getElementById('reportFechaFinVisitas').value;
+    } else {
+        actualizarFechasReporteVisitas();
+        fechaInicio = document.getElementById('reportFechaInicioVisitas').value;
+        fechaFin = document.getElementById('reportFechaFinVisitas').value;
+    }
+
+    if (!fechaInicio || !fechaFin) {
+        alert('Por favor seleccione un período válido');
+        return [];
+    }
+
+    // Combinar reportes generados y borradores para análisis completo
+    const todosLosDatos = [
+        ...reporteDataVisitas.reportes.map(r => ({...r, tipo: 'reporte'})),
+        ...reporteDataVisitas.borradores.map(b => ({...b, tipo: 'borrador'}))
+    ];
+
+    return todosLosDatos.filter(item => {
+        // Filtro por fecha
+        const fechaItem = item.fechaVisita || item.fecha || item.timestamp;
+        if (!fechaItem) return false;
+
+        const fechaStr = typeof fechaItem === 'string' ? fechaItem.split('T')[0] : new Date(fechaItem).toISOString().split('T')[0];
+        if (fechaStr < fechaInicio || fechaStr > fechaFin) {
+            return false;
+        }
+
+        // Filtro por usuario
+        if (usuario !== 'todos') {
+            const usuarioItem = item.usuarioId || item.creadoPor || 'local';
+            if (usuarioItem !== usuario) {
+                return false;
+            }
+        }
+
+        // Filtro por gerencia
+        if (gerencia !== 'todas') {
+            const gerenciaItem = item.gerencia;
+            if (gerenciaItem !== gerencia) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+}
+
+// Generar estadísticas del reporte de visitas
+function generarEstadisticasReporteVisitas(datosFiltrados) {
+    const stats = {
+        totalItems: datosFiltrados.length,
+        reportesGenerados: datosFiltrados.filter(d => d.tipo === 'reporte').length,
+        borradoresGuardados: datosFiltrados.filter(d => d.tipo === 'borrador').length,
+        institucionesUnicas: new Set(datosFiltrados.map(d => d.colegio || d.institucion).filter(Boolean)).size,
+        usuariosActivos: new Set(datosFiltrados.map(d => d.usuarioId || d.creadoPor || 'local')).size,
+        gerenciasActivas: new Set(datosFiltrados.map(d => d.gerencia).filter(Boolean)).size,
+        serviciosPorTipo: {},
+        actividadPorUsuario: {},
+        actividadPorGerencia: {},
+        timelineActividad: {}
+    };
+
+    // Analizar servicios y actividad
+    datosFiltrados.forEach(item => {
+        // Servicios por tipo
+        const servicios = [item.capacitacion, item.comercial, item.institucional, item.operativo].filter(Boolean);
+        servicios.forEach(servicio => {
+            if (servicio && servicio.trim()) {
+                stats.serviciosPorTipo[servicio] = (stats.serviciosPorTipo[servicio] || 0) + 1;
+            }
+        });
+
+        // Actividad por usuario
+        const usuario = item.usuarioId || item.creadoPor || 'local';
+        stats.actividadPorUsuario[usuario] = (stats.actividadPorUsuario[usuario] || 0) + 1;
+
+        // Actividad por gerencia
+        if (item.gerencia) {
+            stats.actividadPorGerencia[item.gerencia] = (stats.actividadPorGerencia[item.gerencia] || 0) + 1;
+        }
+
+        // Timeline de actividad
+        const fecha = item.fechaVisita || item.fecha || item.timestamp;
+        if (fecha) {
+            const mes = (typeof fecha === 'string' ? fecha : new Date(fecha).toISOString()).substring(0, 7);
+            stats.timelineActividad[mes] = (stats.timelineActividad[mes] || 0) + 1;
+        }
+    });
+
+    return stats;
+}
+
+// Vista previa del reporte
+async function previsualizarReporteVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+    const stats = generarEstadisticasReporteVisitas(datosFiltrados);
+
+    const preview = document.getElementById('reportPreviewVisitas');
+    const content = document.getElementById('reportPreviewContentVisitas');
+
+    content.innerHTML = `
+        <div class="stats-summary">
+            <div class="stat-item">
+                <strong>📊 Total Items:</strong> ${stats.totalItems}
+            </div>
+            <div class="stat-item">
+                <strong>📄 Reportes Generados:</strong> ${stats.reportesGenerados}
+            </div>
+            <div class="stat-item">
+                <strong>💾 Borradores:</strong> ${stats.borradoresGuardados}
+            </div>
+            <div class="stat-item">
+                <strong>🏫 Instituciones Únicas:</strong> ${stats.institucionesUnicas}
+            </div>
+            <div class="stat-item">
+                <strong>👥 Usuarios Activos:</strong> ${stats.usuariosActivos}
+            </div>
+            <div class="stat-item">
+                <strong>🌍 Gerencias Activas:</strong> ${stats.gerenciasActivas}
+            </div>
+        </div>
+
+        <div class="stats-detail">
+            <h5>🔧 Top Servicios:</h5>
+            ${Object.entries(stats.serviciosPorTipo)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([servicio, count]) => `<div>${servicio}: ${count} menciones</div>`)
+                .join('')}
+        </div>
+
+        <div class="stats-detail">
+            <h5>👥 Actividad por Usuario:</h5>
+            ${Object.entries(stats.actividadPorUsuario)
+                .sort((a, b) => b[1] - a[1])
+                .map(([usuarioId, count]) => {
+                    const usuario = reporteDataVisitas.usuarios[usuarioId];
+                    const nombre = usuario ? usuario.nombre : usuarioId;
+                    return `<div>${nombre}: ${count} items</div>`;
+                })
+                .join('')}
+        </div>
+    `;
+
+    preview.style.display = 'block';
+}
+
+// Generar reporte ejecutivo
+async function generarReporteEjecutivoVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+    const stats = generarEstadisticasReporteVisitas(datosFiltrados);
+
+    if (datosFiltrados.length === 0) {
+        alert('⚠️ No hay datos para el período y filtros seleccionados');
+        return;
+    }
+
+    alert(`📊 Reporte Ejecutivo generado: ${stats.totalItems} items encontrados (${stats.reportesGenerados} reportes, ${stats.borradoresGuardados} borradores). Use los botones de exportación para descargar.`);
+}
+
+// Generar reporte detallado
+async function generarReporteDetalladoVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+
+    if (datosFiltrados.length === 0) {
+        alert('⚠️ No hay datos para el período y filtros seleccionados');
+        return;
+    }
+
+    alert(`📋 Reporte Detallado generado: ${datosFiltrados.length} items. Use los botones de exportación para descargar.`);
+}
+
+// Exportar reporte a PDF
+async function exportarReportePDFVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+    const stats = generarEstadisticasReporteVisitas(datosFiltrados);
+
+    if (datosFiltrados.length === 0) {
+        alert('⚠️ No hay datos para exportar');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Encabezado
+        doc.setFontSize(18);
+        doc.text('REPORTE DE VISITAS - UNIVERSITY OF DAYTON PUBLISHING', 14, 20);
+        doc.setFontSize(12);
+        doc.text(`Período: ${document.getElementById('reportFechaInicioVisitas').value} - ${document.getElementById('reportFechaFinVisitas').value}`, 14, 30);
+        doc.text(`Generado: ${new Date().toLocaleDateString('es-MX')}`, 14, 38);
+
+        let yPos = 50;
+
+        // Resumen ejecutivo
+        doc.setFontSize(14);
+        doc.text('RESUMEN EJECUTIVO', 14, yPos);
+        yPos += 10;
+
+        doc.setFontSize(10);
+        doc.text(`Total de Items: ${stats.totalItems}`, 14, yPos);
+        yPos += 6;
+        doc.text(`Reportes Generados: ${stats.reportesGenerados}`, 14, yPos);
+        yPos += 6;
+        doc.text(`Borradores Guardados: ${stats.borradoresGuardados}`, 14, yPos);
+        yPos += 6;
+        doc.text(`Instituciones Visitadas: ${stats.institucionesUnicas}`, 14, yPos);
+        yPos += 6;
+        doc.text(`Usuarios Activos: ${stats.usuariosActivos}`, 14, yPos);
+        yPos += 15;
+
+        // Actividad por usuario
+        doc.setFontSize(12);
+        doc.text('ACTIVIDAD POR USUARIO', 14, yPos);
+        yPos += 8;
+
+        doc.setFontSize(10);
+        Object.entries(stats.actividadPorUsuario)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([usuarioId, count]) => {
+                const usuario = reporteDataVisitas.usuarios[usuarioId];
+                const nombre = usuario ? usuario.nombre : usuarioId;
+                const porcentaje = ((count / stats.totalItems) * 100).toFixed(1);
+                doc.text(`${nombre}: ${count} items (${porcentaje}%)`, 14, yPos);
+                yPos += 6;
+            });
+
+        const fileName = `reporte_visitas_ejecutivo_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+
+        alert(`✅ Reporte PDF exportado: ${fileName}`);
+
+    } catch (error) {
+        console.error('❌ Error exportando PDF:', error);
+        alert('Error al generar PDF. Verifique que jsPDF esté cargado.');
+    }
+}
+
+// Exportar reporte a Excel
+async function exportarReporteExcelVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+    const stats = generarEstadisticasReporteVisitas(datosFiltrados);
+
+    if (datosFiltrados.length === 0) {
+        alert('⚠️ No hay datos para exportar');
+        return;
+    }
+
+    try {
+        const wb = XLSX.utils.book_new();
+
+        // Hoja 1: Resumen Ejecutivo
+        const resumenData = [
+            ['REPORTE DE VISITAS - UNIVERSITY OF DAYTON PUBLISHING', ''],
+            ['Período', `${document.getElementById('reportFechaInicioVisitas').value} - ${document.getElementById('reportFechaFinVisitas').value}`],
+            ['Generado', new Date().toLocaleDateString('es-MX')],
+            ['', ''],
+            ['MÉTRICAS PRINCIPALES', ''],
+            ['Total Items', stats.totalItems],
+            ['Reportes Generados', stats.reportesGenerados],
+            ['Borradores Guardados', stats.borradoresGuardados],
+            ['Instituciones Únicas', stats.institucionesUnicas],
+            ['Usuarios Activos', stats.usuariosActivos],
+            ['', ''],
+            ['ACTIVIDAD POR USUARIO', 'CANTIDAD']
+        ];
+
+        Object.entries(stats.actividadPorUsuario)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([usuarioId, count]) => {
+                const usuario = reporteDataVisitas.usuarios[usuarioId];
+                const nombre = usuario ? usuario.nombre : usuarioId;
+                resumenData.push([nombre, count]);
+            });
+
+        const ws1 = XLSX.utils.aoa_to_sheet(resumenData);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Resumen Ejecutivo');
+
+        // Hoja 2: Datos Detallados
+        const headers = ['Fecha', 'Tipo', 'Institución', 'Gerencia', 'Usuario', 'Capacitación', 'Comercial', 'Institucional', 'Operativo'];
+        const detailedData = datosFiltrados.map(item => [
+            item.fechaVisita || item.fecha || new Date(item.timestamp).toISOString().split('T')[0],
+            item.tipo || 'N/A',
+            item.colegio || item.institucion || 'N/A',
+            item.gerencia || 'N/A',
+            (() => {
+                const usuarioId = item.usuarioId || item.creadoPor || 'local';
+                const usuario = reporteDataVisitas.usuarios[usuarioId];
+                return usuario ? usuario.nombre : usuarioId;
+            })(),
+            item.capacitacion || '',
+            item.comercial || '',
+            item.institucional || '',
+            item.operativo || ''
+        ]);
+
+        const ws2 = XLSX.utils.aoa_to_sheet([headers, ...detailedData]);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Datos Detallados');
+
+        const fileName = `reporte_visitas_detallado_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        alert(`✅ Reporte Excel exportado: ${fileName}`);
+
+    } catch (error) {
+        console.error('❌ Error exportando Excel:', error);
+        alert('Error al generar Excel. Verifique que XLSX esté cargado.');
+    }
+}
+
+// Exportar reporte a CSV
+async function exportarReporteCSVVisitas() {
+    await cargarDatosReporteVisitas();
+    const datosFiltrados = filtrarDatosReporteVisitas();
+
+    if (datosFiltrados.length === 0) {
+        alert('⚠️ No hay datos para exportar');
+        return;
+    }
+
+    try {
+        const headers = ['Fecha', 'Tipo', 'Institución', 'Gerencia', 'Usuario', 'Capacitación', 'Comercial', 'Institucional', 'Operativo'];
+        const rows = datosFiltrados.map(item => [
+            item.fechaVisita || item.fecha || new Date(item.timestamp).toISOString().split('T')[0],
+            item.tipo || 'N/A',
+            item.colegio || item.institucion || 'N/A',
+            item.gerencia || 'N/A',
+            (() => {
+                const usuarioId = item.usuarioId || item.creadoPor || 'local';
+                const usuario = reporteDataVisitas.usuarios[usuarioId];
+                return usuario ? usuario.nombre : usuarioId;
+            })(),
+            item.capacitacion || '',
+            item.comercial || '',
+            item.institucional || '',
+            item.operativo || ''
+        ]);
+
+        const csvContent = "\\uFEFF" + [
+            headers.map(h => `"${h.replace(/"/g, '""')}"`).join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
+        ].join('\\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const fileName = `reporte_visitas_analitico_${new Date().toISOString().split('T')[0]}.csv`;
+
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.click();
+        URL.revokeObjectURL(url);
+
+        alert(`✅ Reporte CSV exportado: ${fileName}`);
+
+    } catch (error) {
+        console.error('❌ Error exportando CSV:', error);
+        alert('Error al generar CSV.');
     }
 }
 
