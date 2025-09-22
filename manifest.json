@@ -1,7 +1,7 @@
 
 {
-  "name": "Reporte de Visitas - Dayton",
-  "short_name": "Reporte Dayton",
+  "name": "Reportes de Servicio - University of Dayton Publishing",
+  "short_name": "Dayton Reportes",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
