@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes de Servicio - Dayton</title>
+    <title>Reportes de Servicio - University of Dayton Publishing</title>
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
     <!-- jsPDF desde CDN -->
@@ -654,7 +654,7 @@
         <div class="header">
             <div class="header-left">
                 <h1>Reportes de Servicio</h1>
-                <p>University of Dayton Publishing</p>
+                <p>University of Dayton Publishing - Sistema de Reportes de Servicio</p>
             </div>
             <div class="header-right" id="userInfo" style="display: none;">
                 <div class="user-info">
@@ -826,7 +826,7 @@
                         💾 Guardar Borrador
                     </button>
                     <button type="button" class="btn-secondary" onclick="nuevoReporte()">
-                        🆕 Nuevo reporte
+                        🆕 Limpiar
                     </button>
                 </div>
             </form>
@@ -837,7 +837,7 @@
                 <div style="margin-top: 20px;">
                     <button class="btn-small btn-primary" onclick="copiarReporte()">📋 Copiar</button>
                     <button class="btn-small btn-secondary" onclick="enviarEmail()">📧 Enviar por Email</button>
-                    <button class="btn-small btn-success" onclick="descargarPDF()">📄 Descargar PDF</button>
+                    <button class="btn-small btn-success" onclick="descargarPDF()">📑 Descargar PDF</button>
                 </div>
             </div>
             
@@ -1571,7 +1571,7 @@ ${reporteActual.huboQuejas ? `
                 
                 await reportesDB.guardarReporte(reporte);
 
-                mostrarMensaje('💾 Borrador guardado exitosamente');
+                mostrarMensaje('✅ Borrador guardado exitosamente');
                 await cargarBorradores();
                 await cargarAutocompletadoColegios();
                 
