@@ -312,14 +312,35 @@ class SistemaAutenticacion {
             throw new Error('Solo los administradores pueden modificar usuarios');
         }
 
-
         const usuarios = this.obtenerUsuarios();
-        
-        const usuario = usuarios[username.toLowerCase()];
+
+        console.log('🔍 Actualizando usuario:', username);
+        console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
+
+        // Buscar usuario con diferentes variaciones
+        let usuario = usuarios[username] ||
+                     usuarios[username.toLowerCase()] ||
+                     usuarios[username.toUpperCase()];
+
+        let actualUsername = username;
+
+        // Si no lo encuentra, buscar por id interno
+        if (!usuario) {
+            Object.keys(usuarios).forEach(key => {
+                if (usuarios[key].id === username) {
+                    usuario = usuarios[key];
+                    actualUsername = key;
+                }
+            });
+        }
 
         if (!usuario) {
+            console.log('❌ Usuario no encontrado para:', username);
+            console.log('❌ Usuarios disponibles:', Object.keys(usuarios));
             throw new Error('Usuario no encontrado');
         }
+
+        console.log('✅ Usuario encontrado:', usuario);
 
 
         // Actualizar campos permitidos
@@ -333,8 +354,7 @@ class SistemaAutenticacion {
         usuario.modificadoPor = this.usuarioActual.id;
         usuario.pendienteSincronizacion = true; // Marcar como pendiente de sincronizar
 
-
-        usuarios[username.toLowerCase()] = usuario;
+        usuarios[actualUsername] = usuario;
         this.guardarUsuarios(usuarios);
 
         
