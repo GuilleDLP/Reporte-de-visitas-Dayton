@@ -635,16 +635,42 @@ class PanelAdministrador {
         this.mostrarEstadisticas();
     }
 
+    // Método específico para recargar solo usuarios (llamado desde las funciones HTML)
+    async cargarUsuarios() {
+        try {
+            console.log('🔄 Recargando usuarios...');
+            // Recargar usuarios
+            if (typeof sistemaAuth.listarUsuarios === 'function') {
+                this.usuarios = await sistemaAuth.listarUsuarios();
+            } else {
+                this.usuarios = sistemaAuth.obtenerUsuarios() || {};
+            }
+
+            if (Object.keys(this.usuarios).length === 0) {
+                console.warn('⚠️ No hay usuarios cargados después de recargar');
+            }
+
+            this.mostrarUsuarios();
+            console.log('✅ Usuarios recargados correctamente');
+
+        } catch (error) {
+            console.error('Error recargando usuarios:', error);
+            this.usuarios = sistemaAuth.obtenerUsuarios() || {};
+            this.mostrarUsuarios();
+        }
+    }
+
     mostrarUsuarios() {
         const container = document.getElementById('listaUsuarios');
-        const usuarios = Object.values(this.usuarios);
-        
-        container.innerHTML = usuarios.map(usuario => `
+        // Usar Object.entries para obtener tanto la clave (username) como el objeto usuario
+        const usuariosEntries = Object.entries(this.usuarios);
+
+        container.innerHTML = usuariosEntries.map(([username, usuario]) => `
             <div class="usuario-card">
                 <div class="usuario-info">
                     <div class="usuario-datos">
                         <h4>${usuario.nombre}</h4>
-                        <p>👤 ${usuario.id}</p>
+                        <p>👤 ${username}</p>
                         <p>📧 ${usuario.email}</p>
                         <p>🔑 ${usuario.rol}</p>
                     </div>
@@ -660,11 +686,11 @@ class PanelAdministrador {
                         ${usuario.activo ? '✅ Activo' : '❌ Inactivo'}
                     </div>
                     <div class="usuario-acciones">
-                        <button class="btn-admin btn-warning" onclick="editarUsuario('${usuario.id}')">
+                        <button class="btn-admin btn-warning" onclick="editarUsuario('${username}')">
                             ✏️ Editar
                         </button>
-                        <button class="btn-admin ${usuario.activo ? 'btn-danger' : 'btn-success'}" 
-                                onclick="toggleUsuario('${usuario.id}')">
+                        <button class="btn-admin ${usuario.activo ? 'btn-danger' : 'btn-success'}"
+                                onclick="toggleUsuario('${username}')">
                             ${usuario.activo ? '🚫 Desactivar' : '✅ Activar'}
                         </button>
                     </div>
@@ -1181,15 +1207,15 @@ function editarUsuario(userId) {
         console.log('🔍 Editando usuario:', userId);
         console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
 
-        // Buscar usuario con diferentes variaciones
+        // Buscar usuario con diferentes variaciones de la clave
         let usuario = usuarios[userId] ||
                      usuarios[userId.toLowerCase()] ||
                      usuarios[userId.toUpperCase()];
 
-        // Si no lo encuentra, buscar por id interno
+        // Si no lo encuentra, buscar por coincidencia parcial de clave
         if (!usuario) {
             Object.keys(usuarios).forEach(key => {
-                if (usuarios[key].id === userId) {
+                if (key.toLowerCase() === userId.toLowerCase()) {
                     usuario = usuarios[key];
                 }
             });
@@ -1342,15 +1368,15 @@ function toggleUsuario(userId) {
         console.log('🔍 Toggleando usuario:', userId);
         console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
 
-        // Buscar usuario con diferentes variaciones
+        // Buscar usuario con diferentes variaciones de la clave
         let usuario = usuarios[userId] ||
                      usuarios[userId.toLowerCase()] ||
                      usuarios[userId.toUpperCase()];
 
-        // Si no lo encuentra, buscar por id interno
+        // Si no lo encuentra, buscar por coincidencia parcial de clave
         if (!usuario) {
             Object.keys(usuarios).forEach(key => {
-                if (usuarios[key].id === userId) {
+                if (key.toLowerCase() === userId.toLowerCase()) {
                     usuario = usuarios[key];
                     userId = key; // Actualizar userId al key correcto
                 }
