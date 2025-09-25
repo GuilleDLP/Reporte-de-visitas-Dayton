@@ -317,17 +317,17 @@ class SistemaAutenticacion {
         console.log('🔍 Actualizando usuario:', username);
         console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
 
-        // Buscar usuario con diferentes variaciones
+        // Buscar usuario con diferentes variaciones de la clave
         let usuario = usuarios[username] ||
                      usuarios[username.toLowerCase()] ||
                      usuarios[username.toUpperCase()];
 
         let actualUsername = username;
 
-        // Si no lo encuentra, buscar por id interno
+        // Si no lo encuentra, buscar por coincidencia parcial de clave
         if (!usuario) {
             Object.keys(usuarios).forEach(key => {
-                if (usuarios[key].id === username) {
+                if (key.toLowerCase() === username.toLowerCase()) {
                     usuario = usuarios[key];
                     actualUsername = key;
                 }
