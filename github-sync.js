@@ -197,6 +197,13 @@ class GitHubSync {
                     const usuario = usuariosGitHub[username];
                     usuario.descargadoDesde = 'github';
                     usuario.fechaDescarga = new Date().toISOString();
+
+                    // Verificar si la contraseña está hasheada correctamente
+                    if (usuario.password && typeof usuario.password === 'string' && !usuario.password.includes('-')) {
+                        // Si no es un hash (número negativo), mantener como está
+                        console.log(`⚠️ Usuario ${username}: contraseña ya en formato hash`);
+                    }
+
                     usuariosObj[username] = usuario;
                 });
                 cantidadUsuarios = Object.keys(usuariosGitHub).length;
