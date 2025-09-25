@@ -616,10 +616,20 @@ class InterfazLogin {
     }
 
     mostrarPanelAdmin() {
+        console.log('🔧 mostrarPanelAdmin llamado');
         // Agregar botón de administración en la interfaz principal
         setTimeout(() => {
-            const userInfo = document.querySelector('.user-info');
+            // Buscar diferentes posibles selectores
+            let userInfo = document.querySelector('.user-info') ||
+                          document.querySelector('#userInfo') ||
+                          document.querySelector('.header-user') ||
+                          document.querySelector('.usuario-info');
+
+            console.log('🔍 Buscando elemento user-info:', userInfo);
+            console.log('🔍 Elementos disponibles:', Array.from(document.querySelectorAll('[class*="user"], [id*="user"]')).map(el => el.className || el.id));
+
             if (userInfo && !document.getElementById('adminPanel')) {
+                console.log('✅ Creando botón de admin');
                 const adminButton = document.createElement('button');
                 adminButton.id = 'adminPanel';
                 adminButton.innerHTML = '⚙️ Panel Admin';
@@ -644,10 +654,43 @@ class InterfazLogin {
                     adminButton.style.transform = 'translateY(0)';
                 };
                 adminButton.onclick = () => window.mostrarPanelAdministrador();
-                
+
                 // Insertar antes del botón de salir
-                const logoutButton = userInfo.querySelector('.btn-logout');
-                userInfo.insertBefore(adminButton, logoutButton);
+                const logoutButton = userInfo.querySelector('.btn-logout') || userInfo.querySelector('[onclick*="logout"]');
+                if (logoutButton) {
+                    userInfo.insertBefore(adminButton, logoutButton);
+                } else {
+                    // Si no hay botón de logout, agregar al final
+                    userInfo.appendChild(adminButton);
+                }
+                console.log('✅ Botón de admin agregado');
+            } else {
+                console.log('❌ No se pudo agregar botón de admin');
+                if (!userInfo) console.log('   - No se encontró elemento user-info');
+                if (document.getElementById('adminPanel')) console.log('   - El botón ya existe');
+
+                // Como fallback, agregar el botón al body si no existe
+                if (!document.getElementById('adminPanel')) {
+                    console.log('🆘 Agregando botón de admin como fallback al body');
+                    const adminButton = document.createElement('button');
+                    adminButton.id = 'adminPanel';
+                    adminButton.innerHTML = '⚙️ Panel Admin';
+                    adminButton.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        padding: 10px 15px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        z-index: 1000;
+                        font-size: 14px;
+                    `;
+                    adminButton.onclick = () => window.mostrarPanelAdministrador();
+                    document.body.appendChild(adminButton);
+                }
             }
         }, 500);
     }
