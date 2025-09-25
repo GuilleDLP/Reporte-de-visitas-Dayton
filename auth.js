@@ -150,14 +150,21 @@ class SistemaAutenticacion {
             throw new Error('Contraseña incorrecta');
         }
 
+        // Normalizar rol para compatibilidad (convertir 'admin' a 'administrador' para esta app)
+        if (usuario.rol === 'admin') {
+            console.log('🔄 Normalizando rol admin -> administrador para', username);
+            usuario.rol = 'administrador';
+        }
+
         // Actualizar último acceso
         usuario.ultimoAcceso = new Date().toISOString();
+        usuario.accesos = (usuario.accesos || 0) + 1;
         usuarios[username.toLowerCase()] = usuario;
         this.guardarUsuarios(usuarios);
 
-        // Crear sesión
+        // Crear sesión (usar username como id ya que no existe campo id)
         const sesion = {
-            id: usuario.id,
+            id: username.toLowerCase(),
             nombre: usuario.nombre,
             email: usuario.email,
             rol: usuario.rol,
