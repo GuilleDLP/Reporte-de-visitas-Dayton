@@ -167,12 +167,16 @@ class SistemaAutenticacion {
         localStorage.setItem(this.sessionKey, JSON.stringify(sesion));
         this.usuarioActual = sesion;
 
+        // También establecer como variable global para compatibilidad
+        window.usuarioActual = sesion;
+
         return sesion;
     }
 
     logout() {
         localStorage.removeItem(this.sessionKey);
         this.usuarioActual = null;
+        window.usuarioActual = null;
 
         // Limpiar la interfaz antes de recargar
         const userInfo = document.getElementById('userInfo');
@@ -228,7 +232,29 @@ class SistemaAutenticacion {
     }
 
     esAdmin() {
-        return this.usuarioActual && this.usuarioActual.rol === 'administrador';
+        // Verificar tanto sesión actual como localStorage
+        const sesionActual = this.obtenerSesionActual();
+        return sesionActual && sesionActual.rol === 'administrador';
+    }
+
+    obtenerSesionActual() {
+        try {
+            const sesion = localStorage.getItem(this.sessionKey);
+            if (sesion) {
+                const sesionObj = JSON.parse(sesion);
+                console.log('✅ Sesión encontrada para:', sesionObj.nombre, 'Rol:', sesionObj.rol);
+                this.usuarioActual = sesionObj;
+                window.usuarioActual = sesionObj;
+                return sesionObj;
+            }
+            console.log('❌ No hay sesión activa');
+            this.usuarioActual = null;
+            window.usuarioActual = null;
+            return null;
+        } catch (error) {
+            console.error('Error al obtener sesión:', error);
+            return null;
+        }
     }
 
     crearUsuario(datosUsuario) {
