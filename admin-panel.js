@@ -672,7 +672,7 @@ class PanelAdministrador {
                         <h4>${usuario.nombre}</h4>
                         <p>👤 ${username}</p>
                         <p>📧 ${usuario.email}</p>
-                        <p>🔑 ${usuario.rol}</p>
+                        <p>🔑 ${usuario.rol === 'admin' ? 'Administrador' : (usuario.rol === 'administrador' ? 'Administrador' : 'Usuario')}</p>
                     </div>
                     <div>
                         <p><strong>Creado:</strong></p>
@@ -1229,6 +1229,16 @@ function editarUsuario(userId) {
 
         console.log('✅ Usuario encontrado:', usuario);
 
+        // Buscar la clave real del usuario para pasarla al modal
+        let realUsername = userId;
+        Object.keys(usuarios).forEach(key => {
+            if (usuarios[key] === usuario) {
+                realUsername = key;
+            }
+        });
+
+        console.log('📝 Username real para edición:', realUsername);
+
         // Crear modal de edición
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
@@ -1239,8 +1249,8 @@ function editarUsuario(userId) {
                 <h2 style="margin-bottom:20px;color:#2c3e50">✏️ Editar Usuario</h2>
                 <form id="editarUsuarioForm">
                     <div style="margin-bottom:15px">
-                        <label style="display:block;margin-bottom:5px;font-weight:600">ID de Usuario:</label>
-                        <input type="text" id="editUserId" value="${usuario.id}" 
+                        <label style="display:block;margin-bottom:5px;font-weight:600">Username:</label>
+                        <input type="text" id="editUserId" value="${realUsername}" 
                                style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background:#f5f5f5" readonly>
                     </div>
                     <div style="margin-bottom:15px">
@@ -1263,7 +1273,7 @@ function editarUsuario(userId) {
                         <label style="display:block;margin-bottom:5px;font-weight:600">Rol:</label>
                         <select id="editUserRole" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px">
                             <option value="usuario" ${usuario.rol === 'usuario' ? 'selected' : ''}>Usuario</option>
-                            <option value="administrador" ${usuario.rol === 'administrador' ? 'selected' : ''}>Administrador</option>
+                            <option value="administrador" ${(usuario.rol === 'administrador' || usuario.rol === 'admin') ? 'selected' : ''}>Administrador</option>
                         </select>
                     </div>
                     <div style="margin-bottom:15px">
@@ -1330,14 +1340,14 @@ function editarUsuario(userId) {
                 
                 // Solo cambiar rol si el usuario actual es admin y no se está editando a sí mismo
                 const usuarioActual = sistemaAuth.obtenerSesionActual();
-                if (usuarioActual.id !== userId) {
+                if (usuarioActual.id !== realUsername) {
                     cambios.rol = rol;
                 } else if (rol !== usuario.rol) {
                     alert('⚠️ No puedes cambiar tu propio rol');
                     return;
                 }
-                
-                const usuarioActualizado = sistemaAuth.actualizarUsuario(userId, cambios);
+
+                const usuarioActualizado = sistemaAuth.actualizarUsuario(realUsername, cambios);
                 
                 alert(`✅ Usuario "${usuarioActualizado.nombre}" actualizado exitosamente`);
                 modal.remove();
