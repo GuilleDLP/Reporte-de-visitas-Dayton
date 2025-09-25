@@ -1178,12 +1178,30 @@ async function crearNuevoUsuario() {
 function editarUsuario(userId) {
     try {
         const usuarios = sistemaAuth.obtenerUsuarios();
-        const usuario = usuarios[userId];
-        
+        console.log('🔍 Editando usuario:', userId);
+        console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
+
+        // Buscar usuario con diferentes variaciones
+        let usuario = usuarios[userId] ||
+                     usuarios[userId.toLowerCase()] ||
+                     usuarios[userId.toUpperCase()];
+
+        // Si no lo encuentra, buscar por id interno
         if (!usuario) {
+            Object.keys(usuarios).forEach(key => {
+                if (usuarios[key].id === userId) {
+                    usuario = usuarios[key];
+                }
+            });
+        }
+
+        if (!usuario) {
+            console.log('❌ Usuario no encontrado para ID:', userId);
             alert('Usuario no encontrado');
             return;
         }
+
+        console.log('✅ Usuario encontrado:', usuario);
 
         // Crear modal de edición
         const modal = document.createElement('div');
@@ -1321,12 +1339,31 @@ function editarUsuario(userId) {
 function toggleUsuario(userId) {
     try {
         const usuarios = sistemaAuth.obtenerUsuarios();
-        const usuario = usuarios[userId];
-        
+        console.log('🔍 Toggleando usuario:', userId);
+        console.log('🔍 Usuarios disponibles:', Object.keys(usuarios));
+
+        // Buscar usuario con diferentes variaciones
+        let usuario = usuarios[userId] ||
+                     usuarios[userId.toLowerCase()] ||
+                     usuarios[userId.toUpperCase()];
+
+        // Si no lo encuentra, buscar por id interno
         if (!usuario) {
+            Object.keys(usuarios).forEach(key => {
+                if (usuarios[key].id === userId) {
+                    usuario = usuarios[key];
+                    userId = key; // Actualizar userId al key correcto
+                }
+            });
+        }
+
+        if (!usuario) {
+            console.log('❌ Usuario no encontrado para ID:', userId);
             alert('Usuario no encontrado');
             return;
         }
+
+        console.log('✅ Usuario encontrado:', usuario);
 
         const nuevoEstado = !usuario.activo;
         
