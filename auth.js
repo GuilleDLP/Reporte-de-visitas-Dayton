@@ -232,9 +232,9 @@ class SistemaAutenticacion {
     }
 
     esAdmin() {
-        // Verificar tanto sesión actual como localStorage
-        const sesionActual = this.obtenerSesionActual();
-        return sesionActual && sesionActual.rol === 'administrador';
+        // Verificar tanto sesión actual como localStorage SIN logs repetitivos
+        const sesionActual = this._obtenerSesionSinLogs();
+        return sesionActual && (sesionActual.rol === 'administrador' || sesionActual.rol === 'admin');
     }
 
     obtenerSesionActual() {
@@ -253,6 +253,24 @@ class SistemaAutenticacion {
             return null;
         } catch (error) {
             console.error('Error al obtener sesión:', error);
+            return null;
+        }
+    }
+
+    // Función privada para obtener sesión sin logs repetitivos
+    _obtenerSesionSinLogs() {
+        try {
+            const sesion = localStorage.getItem(this.sessionKey);
+            if (sesion) {
+                const sesionObj = JSON.parse(sesion);
+                this.usuarioActual = sesionObj;
+                window.usuarioActual = sesionObj;
+                return sesionObj;
+            }
+            this.usuarioActual = null;
+            window.usuarioActual = null;
+            return null;
+        } catch (error) {
             return null;
         }
     }
@@ -582,7 +600,8 @@ class InterfazLogin {
             
             setTimeout(() => {
                 this.ocultarLogin();
-                if (usuario.rol === 'administrador') {
+                if (usuario.rol === 'administrador' || usuario.rol === 'admin') {
+                    console.log('🎯 Usuario es admin, llamando mostrarPanelAdmin()');
                     this.mostrarPanelAdmin();
                 }
                 // Reinicializar la app con el usuario autenticado
@@ -744,7 +763,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Hay sesión activa, mostrar la app
                 window.inicializarAppConUsuario(sesionActual);
 
-                if (sesionActual.rol === 'administrador') {
+                if (sesionActual.rol === 'administrador' || sesionActual.rol === 'admin') {
+                    console.log('🎯 Sesión admin detectada, llamando mostrarPanelAdmin()');
                     interfazLogin = new InterfazLogin(sistemaAuth);
                     interfazLogin.mostrarPanelAdmin();
                 }
