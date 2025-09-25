@@ -18,6 +18,18 @@ class SistemaAutenticacion {
         }
     }
 
+    // Función de hash compatible con la app de Seguimiento
+    hashPassword(password) {
+        // Implementación simple de hash para demostración (igual que en Seguimiento)
+        let hash = 0;
+        for (let i = 0; i < password.length; i++) {
+            const char = password.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return hash.toString();
+    }
+
     obtenerUsuariosBase() {
         const fechaBase = new Date().toISOString();
         return {
@@ -25,7 +37,7 @@ class SistemaAutenticacion {
                 id: 'admin',
                 nombre: 'Administrador',
                 email: 'admin@dayton.com',
-                password: 'admin123', // En producción debe estar hasheada
+                password: this.hashPassword('admin123'), // Ahora con hash
                 rol: 'administrador',
                 activo: true,
                 fechaCreacion: fechaBase,
@@ -36,7 +48,7 @@ class SistemaAutenticacion {
                 id: 'hpineda',
                 nombre: 'Homero Pineda',
                 email: 'hpineda@dayton.com',
-                password: 'hpineda2024',
+                password: this.hashPassword('hpineda2024'),
                 rol: 'usuario',
                 activo: true,
                 fechaCreacion: fechaBase,
@@ -47,7 +59,7 @@ class SistemaAutenticacion {
                 id: 'fvillarreal',
                 nombre: 'Fernanda Villarreal',
                 email: 'fvillarreal@dayton.com',
-                password: 'fvillarreal2024',
+                password: this.hashPassword('fvillarreal2024'),
                 rol: 'usuario',
                 activo: true,
                 fechaCreacion: fechaBase,
@@ -58,7 +70,7 @@ class SistemaAutenticacion {
                 id: 'gdelaparra',
                 nombre: 'Guillermo de la Parra',
                 email: 'gdelaparra@dayton.com',
-                password: 'gdelaparra2024',
+                password: this.hashPassword('gdelaparra2024'),
                 rol: 'usuario',
                 activo: true,
                 fechaCreacion: fechaBase,
@@ -69,7 +81,7 @@ class SistemaAutenticacion {
                 id: 'aaguilar',
                 nombre: 'Ana Aguilar',
                 email: 'aaguilar@dayton.com',
-                password: 'aaguilar2024',
+                password: this.hashPassword('aaguilar2024'),
                 rol: 'usuario',
                 activo: true,
                 fechaCreacion: fechaBase,
@@ -84,14 +96,19 @@ class SistemaAutenticacion {
         console.log('🔧 ADVERTENCIA: Esta función puede sobrescribir cambios locales');
         const usuariosBase = this.obtenerUsuariosBase();
         const usuariosActuales = this.obtenerUsuarios() || {};
-        
+
         console.log('👤 Usuarios actuales:', Object.keys(usuariosActuales));
         console.log('📦 Usuarios base disponibles:', Object.keys(usuariosBase));
-        
+
         // Solo agregar usuarios base que NO existan ya
         let agregados = 0;
         for (const [userId, usuarioBase] of Object.entries(usuariosBase)) {
             if (!usuariosActuales[userId]) {
+                // Asegurar que el usuario base tenga contraseña hasheada
+                if (usuarioBase.password && !usuarioBase.password.includes('-')) {
+                    // Si parece que no está hasheada, aplicar hash
+                    usuarioBase.password = this.hashPassword(usuarioBase.password);
+                }
                 usuariosActuales[userId] = usuarioBase;
                 agregados++;
                 console.log(`➕ Agregado usuario faltante: ${usuarioBase.nombre}`);
@@ -99,7 +116,7 @@ class SistemaAutenticacion {
                 console.log(`✓ Usuario ya existe: ${usuariosActuales[userId].nombre}`);
             }
         }
-        
+
         // Guardar solo si se agregó algo
         localStorage.setItem(this.usuariosKey, JSON.stringify(usuariosActuales));
         console.log(`✅ ${agregados} usuarios base agregados. Total: ${Object.keys(usuariosActuales).length} usuarios`);
@@ -127,7 +144,9 @@ class SistemaAutenticacion {
             throw new Error('Usuario desactivado');
         }
 
-        if (usuario.password !== password) {
+        // Verificar contraseña con hash
+        const passwordHash = this.hashPassword(password);
+        if (usuario.password !== passwordHash) {
             throw new Error('Contraseña incorrecta');
         }
 
