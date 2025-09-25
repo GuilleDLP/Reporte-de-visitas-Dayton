@@ -176,22 +176,39 @@ class GitHubSync {
             }
 
             const usuariosGitHub = archivoGitHub.content;
-            console.log(`📊 Usuarios encontrados en GitHub: ${usuariosGitHub.length}`);
 
-            // Convertir a formato del sistema de autenticación
-            const usuariosObj = {};
-            usuariosGitHub.forEach(usuario => {
-                // Marcar como descargado desde GitHub
-                usuario.descargadoDesde = 'github';
-                usuario.fechaDescarga = new Date().toISOString();
-                usuariosObj[usuario.id] = usuario;
-            });
+            // Los usuarios vienen como objeto desde GitHub, no como array
+            let usuariosObj = {};
+            let cantidadUsuarios = 0;
+
+            if (Array.isArray(usuariosGitHub)) {
+                // Si por alguna razón viene como array
+                console.log(`📊 Usuarios encontrados en GitHub (array): ${usuariosGitHub.length}`);
+                usuariosGitHub.forEach(usuario => {
+                    usuario.descargadoDesde = 'github';
+                    usuario.fechaDescarga = new Date().toISOString();
+                    usuariosObj[usuario.id] = usuario;
+                });
+                cantidadUsuarios = usuariosGitHub.length;
+            } else if (usuariosGitHub && typeof usuariosGitHub === 'object') {
+                // Formato normal: objeto con usuarios
+                console.log(`📊 Usuarios encontrados en GitHub (objeto): ${Object.keys(usuariosGitHub).length}`);
+                Object.keys(usuariosGitHub).forEach(username => {
+                    const usuario = usuariosGitHub[username];
+                    usuario.descargadoDesde = 'github';
+                    usuario.fechaDescarga = new Date().toISOString();
+                    usuariosObj[username] = usuario;
+                });
+                cantidadUsuarios = Object.keys(usuariosGitHub).length;
+            } else {
+                throw new Error('Formato de usuarios desde GitHub no reconocido');
+            }
 
             // SOBRESCRIBIR usuarios locales con los de GitHub
             localStorage.setItem('udp_usuarios', JSON.stringify(usuariosObj));
 
-            console.log(`✅ DESCARGA COMPLETADA: ${usuariosGitHub.length} usuarios restaurados desde GitHub`);
-            return { exito: true, cantidad: usuariosGitHub.length, accion: 'restore' };
+            console.log(`✅ DESCARGA COMPLETADA: ${cantidadUsuarios} usuarios restaurados desde GitHub`);
+            return { exito: true, cantidad: cantidadUsuarios, accion: 'restore' };
 
         } catch (error) {
             console.error('❌ Error descargando usuarios desde GitHub:', error);
