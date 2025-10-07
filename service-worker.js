@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "reporte-visitas-cache-v6";
+const CACHE_NAME = "reporte-visitas-cache-v7";
 const urlsToCache = [
   "./",
   "./index.html",
