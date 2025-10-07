@@ -185,6 +185,11 @@ class GitHubSync {
                 // Si por alguna razón viene como array
                 console.log(`📊 Usuarios encontrados en GitHub (array): ${usuariosGitHub.length}`);
                 usuariosGitHub.forEach(usuario => {
+                    // Asegurar que el usuario tenga un id
+                    if (!usuario.id && usuario.username) {
+                        usuario.id = usuario.username;
+                    }
+
                     usuario.descargadoDesde = 'github';
                     usuario.fechaDescarga = new Date().toISOString();
                     usuariosObj[usuario.id] = usuario;
@@ -195,6 +200,12 @@ class GitHubSync {
                 console.log(`📊 Usuarios encontrados en GitHub (objeto): ${Object.keys(usuariosGitHub).length}`);
                 Object.keys(usuariosGitHub).forEach(username => {
                     const usuario = usuariosGitHub[username];
+
+                    // Agregar el campo id si no existe (para compatibilidad)
+                    if (!usuario.id) {
+                        usuario.id = username;
+                    }
+
                     usuario.descargadoDesde = 'github';
                     usuario.fechaDescarga = new Date().toISOString();
 
