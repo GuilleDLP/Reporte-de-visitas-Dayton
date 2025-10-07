@@ -171,7 +171,7 @@ class GitHubSync {
         try {
             // Obtener usuarios de GitHub
             const archivoGitHub = await this.leerArchivo(this.config.paths.usuarios);
-            if (!archivoGitHub || !archivoGitHub.content || archivoGitHub.content.length === 0) {
+            if (!archivoGitHub || !archivoGitHub.content || Object.keys(archivoGitHub.content).length === 0) {
                 throw new Error('No hay datos de usuarios en GitHub para descargar');
             }
 
